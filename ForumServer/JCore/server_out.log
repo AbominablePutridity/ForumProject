@@ -1,0 +1,511 @@
+Connect to DB...
+Connection success!
+QUERY FOR EXECUTION -> 
+CREATE TABLE IF NOT EXISTS Person (
+	id SERIAL PRIMARY KEY,
+	name TEXT, 
+	surname TEXT, 
+	login TEXT, 
+	password TEXT, 
+	role TEXT
+);
+false
+QUERY FOR EXECUTION -> 
+CREATE TABLE IF NOT EXISTS UserGroup (
+	id SERIAL PRIMARY KEY,
+	title TEXT, 
+	description TEXT, 
+	createdAt TIMESTAMPTZ, 
+	personId BIGINT, 
+	FOREIGN KEY(personId) REFERENCES Person(id) ON DELETE CASCADE
+);
+false
+QUERY FOR EXECUTION -> 
+CREATE TABLE IF NOT EXISTS Post (
+	id SERIAL PRIMARY KEY,
+	title TEXT, 
+	body TEXT, 
+	createdAt TIMESTAMPTZ, 
+	userGroupId BIGINT, 
+	personId BIGINT, 
+	FOREIGN KEY(userGroupId) REFERENCES UserGroup(id) ON DELETE CASCADE, 
+	FOREIGN KEY(personId) REFERENCES Person(id) ON DELETE CASCADE
+);
+false
+QUERY FOR EXECUTION -> 
+CREATE TABLE IF NOT EXISTS PostComment (
+	id SERIAL PRIMARY KEY,
+	body TEXT, 
+	createdAt TIMESTAMPTZ, 
+	postId BIGINT, 
+	personId BIGINT, 
+	FOREIGN KEY(postId) REFERENCES Post(id) ON DELETE CASCADE, 
+	FOREIGN KEY(personId) REFERENCES Person(id) ON DELETE CASCADE
+);
+false
+QUERY FOR EXECUTION -> 
+CREATE TABLE IF NOT EXISTS PostAttachment (
+	id SERIAL PRIMARY KEY,
+	fileName TEXT, 
+	filePath TEXT, 
+	mimeType TEXT, 
+	fileSize BIGINT, 
+	postId BIGINT, 
+	FOREIGN KEY(postId) REFERENCES Post(id) ON DELETE CASCADE
+);
+false
+QUERY FOR EXECUTION -> 
+CREATE TABLE IF NOT EXISTS Subscription (
+	id SERIAL PRIMARY KEY,
+	createdAt TIMESTAMPTZ, 
+	personId BIGINT, 
+	userGroupId BIGINT, 
+	FOREIGN KEY(personId) REFERENCES Person(id) ON DELETE CASCADE, 
+	FOREIGN KEY(userGroupId) REFERENCES UserGroup(id) ON DELETE CASCADE
+);
+false
+
+		         . ) .
+		       . )  ) .
+		    ___(____(___  _
+		   |_            |  |
+		     \  |JAVA|  / _/
+		 _____\        /_/_
+		/      (______)     \
+		\___________________/ 
+
+
+
+	>>>>>>>>>>	START JCORE FRAMEWORK	<<<<<<<<<<
+
+[33m	  _____          _  ____                 
+	 /    /\        | |/ ___|___  _ __ ___   
+	/____/  \    _  | | |   / _ \| '__/ _ \  
+	\    \  /   | |_| | |__| (_) | | |  __/  
+	 \____\/     \___/ \____\___/|_|  \___|  
+[0m
+	:: JCore Framework ::             (0.1)
+
+
+Ñåðâåð çàïóùåí íà ïîðòó: 8082
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: AuthController/registerAction
+
+ 	 HASHED_PASSWORD = $2a$12$g2w01ORkiuGCYrmBIft6nOlGyHeLQioHtHaF/VTq9dAcTOAlryyeC 
+
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: AuthController/registerAction
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: AuthController/loginAction
+
+ 	 PASSWORD_IS_VERIFIED = false 
+
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: AuthController/loginAction
+
+ 	 PASSWORD_IS_VERIFIED = true 
+
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: AuthController/registerAction
+
+ 	 HASHED_PASSWORD = $2a$12$aaimA.mmEaHkZG51ntsyx.6H3mz.WZeeWfnb2WDqrMi4JN8bA0tyO 
+
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: GroupController/createGroupAction
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+
+ 	 PASSWORD_IS_VERIFIED = true 
+
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: GroupController/updateGroupAction
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+
+ 	 PASSWORD_IS_VERIFIED = true 
+
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: GroupController/updateGroupAction
+ëîãèí: user2_1787314842778
+ïàðîëü: pass5678
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+
+ 	 PASSWORD_IS_VERIFIED = true 
+
+ëîãèí: user2_1787314842778
+ïàðîëü: pass5678
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: PostController/createPostAction
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+
+ 	 PASSWORD_IS_VERIFIED = true 
+
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: PostController/createPostAction
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+
+ 	 PASSWORD_IS_VERIFIED = true 
+
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: PostController/createPostAction
+ëîãèí: user2_1787314842778
+ïàðîëü: pass5678
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+
+ 	 PASSWORD_IS_VERIFIED = true 
+
+ëîãèí: user2_1787314842778
+ïàðîëü: pass5678
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: GroupController/subscribeAction
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+
+ 	 PASSWORD_IS_VERIFIED = true 
+
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: GroupController/subscribeAction
+ëîãèí: user2_1787314842778
+ïàðîëü: pass5678
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+
+ 	 PASSWORD_IS_VERIFIED = true 
+
+ëîãèí: user2_1787314842778
+ïàðîëü: pass5678
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: FeedController/getFeedAction
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+
+ 	 PASSWORD_IS_VERIFIED = true 
+
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: GroupController/getGroupPostsAction
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+
+ 	 PASSWORD_IS_VERIFIED = true 
+
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: GroupController/getGroupAction
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+
+ 	 PASSWORD_IS_VERIFIED = true 
+
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: GroupController/searchGroupsAction
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+
+ 	 PASSWORD_IS_VERIFIED = true 
+
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: GroupController/getMyGroupsAction
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+
+ 	 PASSWORD_IS_VERIFIED = true 
+
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: GroupController/getSubscribedGroupsAction
+ëîãèí: user2_1787314842778
+ïàðîëü: pass5678
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+
+ 	 PASSWORD_IS_VERIFIED = true 
+
+ëîãèí: user2_1787314842778
+ïàðîëü: pass5678
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: PostController/getPostAction
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+
+ 	 PASSWORD_IS_VERIFIED = true 
+
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: PostController/downloadAttachmentAction
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+
+ 	 PASSWORD_IS_VERIFIED = true 
+
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: PostController/deleteAttachmentAction
+ëîãèí: user2_1787314842778
+ïàðîëü: pass5678
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+
+ 	 PASSWORD_IS_VERIFIED = true 
+
+ëîãèí: user2_1787314842778
+ïàðîëü: pass5678
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: PostController/deleteAttachmentAction
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+
+ 	 PASSWORD_IS_VERIFIED = true 
+
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: PostController/uploadPostFilesAction
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+
+ 	 PASSWORD_IS_VERIFIED = true 
+
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: CommentController/createCommentAction
+ëîãèí: user2_1787314842778
+ïàðîëü: pass5678
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+
+ 	 PASSWORD_IS_VERIFIED = true 
+
+ëîãèí: user2_1787314842778
+ïàðîëü: pass5678
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: CommentController/updateCommentAction
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+
+ 	 PASSWORD_IS_VERIFIED = true 
+
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: CommentController/updateCommentAction
+ëîãèí: user2_1787314842778
+ïàðîëü: pass5678
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+
+ 	 PASSWORD_IS_VERIFIED = true 
+
+ëîãèí: user2_1787314842778
+ïàðîëü: pass5678
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: CommentController/getCommentsAction
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+
+ 	 PASSWORD_IS_VERIFIED = true 
+
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: CommentController/deleteCommentAction
+ëîãèí: user2_1787314842778
+ïàðîëü: pass5678
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+
+ 	 PASSWORD_IS_VERIFIED = true 
+
+ëîãèí: user2_1787314842778
+ïàðîëü: pass5678
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: GroupController/unsubscribeAction
+ëîãèí: user2_1787314842778
+ïàðîëü: pass5678
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+
+ 	 PASSWORD_IS_VERIFIED = true 
+
+ëîãèí: user2_1787314842778
+ïàðîëü: pass5678
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: FeedController/getFeedAction
+ëîãèí: user2_1787314842778
+ïàðîëü: pass5678
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+
+ 	 PASSWORD_IS_VERIFIED = true 
+
+ëîãèí: user2_1787314842778
+ïàðîëü: pass5678
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: FeedController/getFeedAction
+ëîãèí: ghost_1787314842778
+ïàðîëü: nopass
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: PostController/updatePostAction
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+
+ 	 PASSWORD_IS_VERIFIED = true 
+
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: PostController/deletePostAction
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+
+ 	 PASSWORD_IS_VERIFIED = true 
+
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: PostController/getPostAction
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+
+ 	 PASSWORD_IS_VERIFIED = true 
+
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: GroupController/deleteGroupAction
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+
+ 	 PASSWORD_IS_VERIFIED = true 
+
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî
+Íîâîå ïîäêëþ÷åíèå: /127.0.0.1
+Ïîëó÷åí ðîóò: GroupController/getGroupAction
+ëîãèí: user1_1787314842778
+ïàðîëü: pass1234
+Â ÊËÈÅÍÒÑÊÎÌ ÇÀÏÐÎÑÅ ÄÀÍÍÛÅ ÄËß ÂÕÎÄÀ ÍÅ ÍÀÉÄÅÍÛ!
+
+ 	 PASSWORD_IS_VERIFIED = true 
+
+Îòâåò îòïðàâëåí êëèåíòó
+Ñîåäèíåíèå çàêðûòî

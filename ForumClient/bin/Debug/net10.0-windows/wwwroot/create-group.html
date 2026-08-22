@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <title>Группа — JCore Forum</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <header id="topbar" class="topbar"></header>
+
+    <main class="container">
+        <div class="card form-card">
+            <h1 id="form-title">Создание группы</h1>
+            <p class="subtitle">Название до 300 символов, описание необязательно.</p>
+
+            <div id="alert" class="alert"></div>
+
+            <form id="group-form">
+                <div class="field">
+                    <label for="title">Название</label>
+                    <input type="text" id="title" required maxlength="300">
+                </div>
+
+                <div class="field">
+                    <label for="description">Описание</label>
+                    <textarea id="description" rows="6" maxlength="10000"></textarea>
+                </div>
+
+                <div class="actions-row">
+                    <button class="btn btn-primary" type="submit" id="submit-btn">Сохранить</button>
+                    <a class="btn" href="javascript:history.back()">Отмена</a>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <script src="js/api.js"></script>
+    <script>
+        const editGroupId = Number(qs('id') || 0);
+
+        async function init() {
+            const session = await ensureSession();
+            if (!session) return;
+
+            renderNav(editGroupId ? '' : 'create-group.html', session);
+
+            if (!editGroupId) return;
+
+            document.getElementById('form-title').textContent = 'Редактирование группы';
+            document.title = 'Редактирование группы — JCore Forum';
+
+            try {
+                const res = await api('group.get', { groupId: editGroupId });
+
+                document.getElementById('title').value = res.group.title || '';
+                document.getElementById('description').value = res.group.description || '';
+            } catch (err) {
+                const alertBox = document.getElementById('alert');
+                alertBox.className = 'alert alert-error';
+                alertBox.textContent = err.message;
+            }
+        }
+
+        document.getElementById('group-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const alertBox = document.getElementById('alert');
+            alertBox.className = 'alert';
+
+            const title = document.getElementById('title').value.trim();
+            const description = document.getElementById('description').value;
+
+            if (!title) {
+                alertBox.className = 'alert alert-error';
+                alertBox.textContent = 'Введите название группы';
+                return;
+            }
+
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = true;
+
+            try {
+                if (editGroupId) {
+                    await api('group.update', { groupId: editGroupId, title, description });
+                    location.href = `group.html?id=${editGroupId}`;
+                } else {
+                    const res = await api('group.create', { title, description });
+                    location.href = `group.html?id=${res.id}`;
+                }
+            } catch (err) {
+                alertBox.className = 'alert alert-error';
+                alertBox.textContent = err.message;
+                btn.disabled = false;
+            }
+        });
+
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

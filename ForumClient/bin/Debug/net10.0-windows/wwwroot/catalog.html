@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <title>Группы — JCore Forum</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <header id="topbar" class="topbar"></header>
+
+    <main class="container">
+        <h1>Группы</h1>
+        <p class="subtitle">Каталог всех групп, ваши группы и подписки.</p>
+
+        <div class="tabs">
+            <a class="tab active" href="#" data-tab="all" id="tab-all">Все группы</a>
+            <a class="tab" href="#" data-tab="subscribed" id="tab-subscribed">Мои подписки</a>
+            <a class="tab" href="#" data-tab="my" id="tab-my">Мои группы</a>
+            <a class="btn btn-primary btn-sm" style="margin-left:auto" href="create-group.html">
+                Создать группу
+            </a>
+        </div>
+
+        <div id="list"></div>
+        <div id="pager" class="pager"></div>
+    </main>
+
+    <script src="js/api.js"></script>
+    <script>
+        const listEl = document.getElementById('list');
+        const pagerEl = document.getElementById('pager');
+        const PAGE_SIZE = 10;
+
+        let activeTab = 'all';
+        let currentPage = 1;
+        let subscribedIds = new Set();
+        let myIds = new Set();
+
+        function isSubscribed(groupId) { return subscribedIds.has(String(groupId)); }
+        function isMine(groupId) { return myIds.has(Number(groupId)); }
+
+        function groupActions(group) {
+            const buttons = [];
+
+            if (isMine(group.id)) {
+                buttons.push(`<a class="btn btn-sm" href="create-group.html?id=${group.id}">Редактировать</a>`);
+            }
+
+            if (isSubscribed(group.id)) {
+                buttons.push(`<button class="btn btn-sm" onclick="toggleSubscribe(${group.id}, false)">Отписаться</button>`);
+            } else {
+                buttons.push(`<button class="btn btn-primary btn-sm" onclick="toggleSubscribe(${group.id}, true)">Подписаться</button>`);
+            }
+
+            return buttons.join('');
+        }
+
+        async function toggleSubscribe(groupId, subscribe) {
+            try {
+                await api(subscribe ? 'group.subscribe' : 'group.unsubscribe', { groupId });
+
+                if (subscribe) subscribedIds.add(String(groupId));
+                else subscribedIds.delete(String(groupId));
+
+                toast(subscribe ? 'Вы подписались на группу' : 'Вы отписались от группы', 'ok');
+                await refreshCard(groupId);
+            } catch (err) {
+                toast(err.message, 'error');
+            }
+        }
+
+        async function refreshCard(groupId) {
+            try {
+                const res = await api('group.get', { groupId });
+                const cardHtml = groupCardHtml(res.group, groupActions(res.group));
+
+                const existing = document.getElementById(`group-card-${groupId}`);
+                if (existing && activeTab === 'all') {
+                    existing.outerHTML = cardHtml;
+                } else {
+                    await loadTab(activeTab, currentPage);
+                }
+            } catch (err) {
+                toast(err.message, 'error');
+            }
+        }
+
+        async function loadAll(page) {
+            const data = await api('group.search', { page, size: PAGE_SIZE });
+            currentPage = data.page || page;
+
+            listEl.innerHTML = data.items.length === 0
+                ? ''
+                : data.items.map((g) => groupCardHtml(g, groupActions(g))).join('');
+
+            renderPager(pagerEl, currentPage, data.pages, (p) => loadAll(p));
+
+            if (!data.items.length) showEmpty(listEl, 'Групп пока нет — создайте первую!');
+        }
+
+        async function loadSubscribed() {
+            const res = await api('group.subscribed');
+            const groups = res.groups || [];
+
+            subscribedIds = new Set(groups.map((g) => String(g.id)));
+            renderPager(pagerEl, 0, 0);
+
+            listEl.innerHTML = groups.map((g) => groupCardHtml(g, groupActions(g))).join('');
+
+            if (!groups.length) showEmpty(listEl, 'Нет подписок. Найдите интересные группы во вкладке «Все группы».');
+        }
+
+        async function loadMy() {
+            const res = await api('group.my');
+            const groups = res.groups || [];
+
+            myIds = new Set(groups.map((g) => Number(g.id)));
+            renderPager(pagerEl, 0, 0);
+
+            listEl.innerHTML = groups.map((g) =>
+                groupCardHtml(g,
+                    `<a class="btn btn-sm" href="create-group.html?id=${g.id}">Редактировать</a>` +
+                    `<button class="btn btn-danger btn-sm" onclick="deleteGroup(${g.id})">Удалить группу</button>`
+                )
+            ).join('');
+
+            if (!groups.length) showEmpty(listEl, 'Вы еще не создавали группы.');
+        }
+
+        async function deleteGroup(groupId) {
+            if (!confirm('Удалить группу вместе со всеми постами, комментариями и файлами?')) return;
+
+            try {
+                await api('group.delete', { groupId });
+                toast('Группа удалена', 'ok');
+
+                myIds.delete(Number(groupId));
+                subscribedIds.delete(String(groupId));
+                await loadTab(activeTab, currentPage);
+            } catch (err) {
+                toast(err.message, 'error');
+            }
+        }
+
+        async function loadTab(tab, page) {
+            showSpinner(listEl);
+            activeTab = tab;
+
+            try {
+                if (tab === 'all') await loadAll(page);
+                else if (tab === 'subscribed') await loadSubscribed();
+                else await loadMy();
+            } catch (err) {
+                showError(listEl, err.message);
+            }
+        }
+
+        document.querySelectorAll('.tab').forEach((tab) => {
+            tab.addEventListener('click', (e) => {
+                e.preventDefault();
+
+                document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                loadTab(tab.dataset.tab, 1);
+            });
+        });
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            const session = await ensureSession();
+            if (!session) return;
+
+            renderNav('catalog.html', session);
+
+            const [subsRes, myRes] = await Promise.all([
+                api('group.subscribed'),
+                api('group.my')
+            ]);
+
+            subscribedIds = new Set((subsRes.groups || []).map((g) => String(g.id)));
+            myIds = new Set((myRes.groups || []).map((g) => Number(g.id)));
+
+            await loadTab('all', 1);
+        });
+    </script>
+</body>
+</html>

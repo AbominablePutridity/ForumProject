@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <title>Пост — JCore Forum</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <header id="topbar" class="topbar"></header>
+
+    <main class="container">
+        <div id="post-view"></div>
+
+        <h2 id="comments-title">Комментарии</h2>
+        <div id="comments"></div>
+        <div id="pager" class="pager"></div>
+
+        <div class="card comment-form">
+            <b>Добавить комментарий</b>
+            <div class="field" style="margin-top:10px">
+                <textarea id="comment-body" rows="3" maxlength="10000"
+                          placeholder="Напишите комментарий…"></textarea>
+            </div>
+            <button class="btn btn-primary" onclick="submitComment()">Отправить</button>
+        </div>
+    </main>
+
+    <script src="js/api.js"></script>
+    <script>
+        const postId = Number(qs('id') || 0);
+
+        const postEl = document.getElementById('post-view');
+        const commentsEl = document.getElementById('comments');
+        const pagerEl = document.getElementById('pager');
+
+        const PAGE_SIZE = 20;
+        const COMMENT_PAGE_SIZE = 10;
+        let currentPage = 1;
+        let currentUserId = 0;
+        let isPostAuthor = false;
+        let currentAttachments = [];
+
+        // Вложения отдаются C#-хостом сырыми байтами по этому пути
+        // (перехват /media/{id}), поэтому никаких base64 и blob-URL.
+        function attachmentUrl(id) { return '/media/' + id; }
+
+        function attachmentHtml(att) {
+            const url = attachmentUrl(att.id);
+            const mime = att.mimeType || '';
+
+            const removeBtn = isPostAuthor
+                ? `<button class="gallery-remove" title="Удалить вложение"
+                         onclick="deleteAttachment(${att.id})">✕ удалить</button>`
+                : '';
+
+            if (mime.startsWith('image/')) {
+                return `<div class="gallery-item">${removeBtn}
+                          <img class="zoomable" loading="lazy" src="${url}"
+                               alt="${esc(att.fileName)}" title="Открыть на весь экран"
+                               onclick="openViewer(${att.id})">
+                        </div>`;
+            }
+
+            if (mime.startsWith('video/')) {
+                return `<div class="gallery-item">${removeBtn}
+                          <video src="${url}" controls preload="metadata"></video>
+                        </div>`;
+            }
+
+            if (mime.startsWith('audio/')) {
+                return `<div class="gallery-item gallery-file">
+                          ${removeBtn}
+                          <b>${esc(att.fileName)}</b>
+                          <audio src="${url}" controls preload="metadata"></audio>
+                        </div>`;
+            }
+
+            return `<div class="gallery-item gallery-file">
+                      ${removeBtn}
+                      <b>${esc(att.fileName)}</b>
+                      <span class="muted">${fmtSize(att.fileSize)}</span>
+                      <a class="btn btn-sm" href="${url}" download="${esc(att.fileName)}">Скачать</a>
+                    </div>`;
+        }
+
+        function fmtSize(bytes) {
+            if (!bytes) return '0 Б';
+            if (bytes < 1024) return bytes + ' Б';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' КБ';
+            return (bytes / 1024 / 1024).toFixed(1) + ' МБ';
+        }
+
+        async function loadPost() {
+            showSpinner(postEl);
+
+            const res = await api('post.get', { postId });
+            const p = res.post;
+            const attachments = res.attachments || [];
+            currentAttachments = attachments;
+            isPostAuthor = Number(p.authorId) === currentUserId;
+
+            document.title = `${p.title} — JCore Forum`;
+
+            const ownerControls = isPostAuthor ? `
+              <a class="btn btn-sm" href="create-post.html?postId=${p.id}&groupId=${p.groupId}">Редактировать пост</a>
+              <button class="btn btn-danger btn-sm" onclick="deletePost()">Удалить пост</button>` : '';
+
+            postEl.innerHTML = `
+              <article class="card">
+                <div class="card-head">
+                  <h1 style="margin:0">${esc(p.title)}</h1>
+                  <span class="muted">${fmtDate(p.createdAt)}</span>
+                </div>
+                <div class="meta-row" style="margin-top:8px">
+                  <a class="badge" href="group.html?id=${p.groupId}">${esc(p.groupTitle)}</a>
+                  <span>автор: <b>${esc(p.authorLogin)}</b></span>
+                  ${ownerControls}
+                </div>
+                ${p.body ? `<p class="post-body">${esc(p.body)}</p>` : ''}
+              </article>`;
+
+            const galleryEl = document.createElement('div');
+            galleryEl.className = 'gallery';
+            galleryEl.id = 'gallery';
+            postEl.appendChild(galleryEl);
+
+            if (attachments.length) {
+                galleryEl.innerHTML = attachments.map(attachmentHtml).join('');
+            }
+
+            if (isPostAuthor) {
+                const uploadCard = document.createElement('div');
+                uploadCard.className = 'card';
+                uploadCard.innerHTML = `
+                  <div class="actions-row" style="margin-top:0;align-items:center;gap:12px">
+                    <input type="file" id="extra-files" multiple style="max-width:340px">
+                    <button class="btn btn-sm" onclick="uploadExtraFiles()">Прикрепить файлы к посту</button>
+                  </div>`;
+                document.getElementById('comments-title').before(uploadCard);
+            }
+        }
+
+        async function deleteAttachment(attachmentId) {
+            try {
+                await api('attachment.delete', { attachmentId });
+                toast('Вложение удалено', 'ok');
+                reload();
+            } catch (err) {
+                toast(err.message, 'error');
+            }
+        }
+
+        async function deletePost() {
+            if (!confirm('Удалить пост вместе с комментариями и вложениями?')) return;
+
+            try {
+                const res = await api('post.get', { postId });
+                await api('post.delete', { postId });
+                location.href = `group.html?id=${res.post.groupId}`;
+            } catch (err) {
+                toast(err.message, 'error');
+            }
+        }
+
+        // ---- Просмотр фото на весь экран (лайтбокс) ----
+        // Важно: не используем target="_blank" — WebView2 не умеет открывать
+        // новые окна в этом приложении, и ссылка привела бы к странице ошибки.
+        function openViewer(attachmentId) {
+            const att = currentAttachments.find((a) => Number(a.id) === Number(attachmentId));
+            if (!att) return;
+
+            let root = document.getElementById('media-viewer');
+
+            if (!root) {
+                root = document.createElement('div');
+                root.id = 'media-viewer';
+                root.innerHTML = `
+                  <button class="mv-close" title="Закрыть (Esc)">✕</button>
+                  <img id="mv-img" alt="">`;
+
+                document.body.appendChild(root);
+
+                root.addEventListener('click', (e) => {
+                    if (e.target === root || e.target.classList.contains('mv-close')) closeViewer();
+                });
+
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') closeViewer();
+                });
+            }
+
+            root.querySelector('#mv-img').src = attachmentUrl(att.id);
+            root.classList.add('open');
+        }
+
+        function closeViewer() {
+            const root = document.getElementById('media-viewer');
+            if (root) {
+                root.classList.remove('open');
+                root.querySelector('#mv-img').src = '';
+            }
+        }
+
+        async function uploadExtraFiles() {
+            const files = Array.from(document.getElementById('extra-files').files || []);
+
+            if (!files.length) {
+                toast('Выберите хотя бы один файл', 'error');
+                return;
+            }
+
+            const failed = await uploadFilesSequentially(postId, files);
+
+            if (failed.length) {
+                toast('Не удалось загрузить: ' + failed.join('; '), 'error');
+                return;
+            }
+
+            toast('Файлы загружены', 'ok');
+            reload();
+        }
+
+        function commentHtml(c) {
+            const own = Number(c.authorId) === currentUserId;
+
+            return `
+              <div class="comment" id="comment-${c.id}">
+                <div class="comment-head">
+                  <span><b>${esc(c.authorLogin)}</b>
+                    <span class="muted">${fmtDate(c.createdAt)}</span></span>
+                  ${own ? `
+                    <span>
+                      <a href="#" onclick="startEditComment(${c.id});return false">изменить</a> ·
+                      <a href="#" style="color:var(--danger)"
+                         onclick="deleteComment(${c.id});return false">удалить</a>
+                    </span>` : ''}
+                </div>
+                <div class="comment-body" id="comment-body-${c.id}">${esc(c.body)}</div>
+              </div>`;
+        }
+
+        async function loadComments(page) {
+            showSpinner(commentsEl);
+
+            try {
+                const data = await api('comment.list', { postId, page, size: COMMENT_PAGE_SIZE });
+                currentPage = data.page || page;
+
+                document.getElementById('comments-title').textContent =
+                    `Комментарии (${data.total})`;
+
+                if (!data.items || data.items.length === 0) {
+                    commentsEl.innerHTML = '<div class="empty-state">Пока нет комментариев — будьте первым!</div>';
+                    renderPager(pagerEl, 0, 0);
+                    return;
+                }
+
+                commentsEl.innerHTML = data.items.map(commentHtml).join('');
+                renderPager(pagerEl, currentPage, data.pages, loadComments);
+            } catch (err) {
+                showError(commentsEl, err.message);
+            }
+        }
+
+        async function submitComment() {
+            const bodyEl = document.getElementById('comment-body');
+            const body = bodyEl.value.trim();
+
+            if (!body) {
+                toast('Введите текст комментария', 'error');
+                return;
+            }
+
+            try {
+                await api('comment.create', { postId, body });
+                bodyEl.value = '';
+                toast('Комментарий добавлен', 'ok');
+
+                await loadComments(currentPage);
+            } catch (err) {
+                toast(err.message, 'error');
+            }
+        }
+
+        function startEditComment(commentId) {
+            const block = document.getElementById(`comment-${commentId}`);
+            const bodyEl = document.getElementById(`comment-body-${commentId}`);
+
+            const editor = document.createElement('div');
+            editor.className = 'inline-edit';
+            editor.innerHTML = `
+              <textarea id="edit-${commentId}">${bodyEl.textContent}</textarea>
+              <div class="actions-row">
+                <button class="btn btn-primary btn-sm"
+                        onclick="saveEditComment(${commentId})">Сохранить</button>
+                <button class="btn btn-sm" onclick="reload()">Отмена</button>
+              </div>`;
+
+            bodyEl.style.display = 'none';
+            block.appendChild(editor);
+        }
+
+        async function saveEditComment(commentId) {
+            const body = document.getElementById(`edit-${commentId}`).value.trim();
+
+            if (!body) {
+                toast('Текст не может быть пустым', 'error');
+                return;
+            }
+
+            try {
+                await api('comment.update', { commentId, body });
+                toast('Комментарий обновлен', 'ok');
+                reload();
+            } catch (err) {
+                toast(err.message, 'error');
+            }
+        }
+
+        async function deleteComment(commentId) {
+            if (!confirm('Удалить комментарий?')) return;
+
+            try {
+                await api('comment.delete', { commentId });
+                toast('Комментарий удален', 'ok');
+                await loadComments(currentPage);
+            } catch (err) {
+                toast(err.message, 'error');
+            }
+        }
+
+        function reload() {
+            location.reload();
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            const session = await ensureSession();
+            if (!session) return;
+
+            if (!postId) {
+                location.href = 'feed.html';
+                return;
+            }
+
+            currentUserId = session.id;
+            renderNav('', session);
+
+            try {
+                await loadPost();
+                await loadComments(1);
+            } catch (err) {
+                showError(postEl, err.message);
+            }
+        });
+    </script>
+</body>
+</html>

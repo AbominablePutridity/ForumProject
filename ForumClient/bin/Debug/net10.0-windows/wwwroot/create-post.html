@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <title>Пост — JCore Forum</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <header id="topbar" class="topbar"></header>
+
+    <main class="container">
+        <div class="card form-card">
+            <h1 id="form-title">Новый пост</h1>
+            <p class="subtitle" id="form-subtitle">Публиковать можно только в своих группах.</p>
+
+            <div id="alert" class="alert"></div>
+
+            <form id="post-form">
+                <div class="field">
+                    <label for="title">Заголовок</label>
+                    <input type="text" id="title" required maxlength="300">
+                </div>
+
+                <div class="field">
+                    <label for="body">Текст поста</label>
+                    <textarea id="body" rows="8" maxlength="100000"
+                              placeholder="О чем хотите рассказать?"></textarea>
+                </div>
+
+                <div class="field" id="files-field">
+                    <label for="files">Вложения (фото/видео/документы)</label>
+                    <input type="file" id="files" multiple>
+                    <div class="hint">Можно выбрать несколько файлов, до 200 МБ каждый</div>
+                </div>
+
+                <div class="actions-row">
+                    <button class="btn btn-primary" type="submit" id="submit-btn">Сохранить</button>
+                    <a class="btn" href="javascript:history.back()">Отмена</a>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <script src="js/api.js"></script>
+    <script>
+        const editPostId = Number(qs('postId') || 0);
+        const groupId = Number(qs('groupId') || 0);
+
+        async function init() {
+            const session = await ensureSession();
+            if (!session) return;
+
+            renderNav('', session);
+
+            if (!editPostId) {
+                if (!groupId) {
+                    location.href = 'catalog.html';
+                    return;
+                }
+
+                document.getElementById('form-subtitle').textContent =
+                    'Публикация в группу № ' + groupId;
+                return;
+            }
+
+            document.getElementById('form-title').textContent = 'Редактирование поста';
+            document.title = 'Редактирование поста — JCore Forum';
+            document.getElementById('files-field').style.display = 'none';
+
+            try {
+                const res = await api('post.get', { postId: editPostId });
+
+                document.getElementById('title').value = res.post.title || '';
+                document.getElementById('body').value = res.post.body || '';
+
+                document.getElementById('form-subtitle').textContent =
+                    'Пост в группе «' + res.post.groupTitle + '». Заголовок и текст можно изменить.';
+            } catch (err) {
+                const alertBox = document.getElementById('alert');
+                alertBox.className = 'alert alert-error';
+                alertBox.textContent = err.message;
+            }
+        }
+
+        document.getElementById('post-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const alertBox = document.getElementById('alert');
+            alertBox.className = 'alert';
+
+            const title = document.getElementById('title').value.trim();
+            const body = document.getElementById('body').value;
+
+            if (!title) {
+                alertBox.className = 'alert alert-error';
+                alertBox.textContent = 'Введите заголовок';
+                return;
+            }
+
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = true;
+            btn.textContent = 'Отправка…';
+
+            try {
+                if (editPostId) {
+                    await api('post.update', { postId: editPostId, title, body });
+                    location.href = `post.html?id=${editPostId}`;
+                    return;
+                }
+
+                const res = await api('post.create', { groupId, title, body });
+                const newPostId = res.id;
+
+                // Файлы грузим отдельно, сырыми байтами, по одному —
+                // так нет лимитов моста и видно прогресс по каждому файлу.
+                const files = Array.from(document.getElementById('files').files || []);
+                let uploaded = 0;
+
+                if (files.length) {
+                    btn.textContent = `Загрузка файлов 0/${files.length}…`;
+
+                    const failed = await uploadFilesSequentially(
+                        newPostId, files, () => {
+                            uploaded++;
+                            btn.textContent = `Загрузка файлов ${uploaded}/${files.length}…`;
+                        });
+
+                    if (failed.length) {
+                        alertBox.className = 'alert alert-error';
+                        alertBox.innerHTML =
+                            'Пост создан, но не удалось загрузить:<br>' +
+                            esc(failed.join('<br>')) +
+                            '<br><br><a class="btn btn-sm" href="post.html?id=' + newPostId +
+                            '">Открыть пост без этих файлов</a>';
+                        btn.disabled = false;
+                        btn.textContent = 'Повторить загрузку';
+                        return;
+                    }
+                }
+
+                toast('Пост опубликован', 'ok');
+                location.href = `post.html?id=${newPostId}`;
+            } catch (err) {
+                alertBox.className = 'alert alert-error';
+                alertBox.textContent = err.message;
+                btn.disabled = false;
+                btn.textContent = 'Сохранить';
+            }
+        });
+
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

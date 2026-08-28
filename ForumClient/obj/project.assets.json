@@ -1351,11 +1351,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\AI\\AiDev\\ForumClient\\ForumClient.csproj",
+      "projectUniqueName": "D:\\AI\\AiDev\\ForumProject\\ForumClient\\ForumClient.csproj",
       "projectName": "ForumClient",
-      "projectPath": "D:\\AI\\AiDev\\ForumClient\\ForumClient.csproj",
+      "projectPath": "D:\\AI\\AiDev\\ForumProject\\ForumClient\\ForumClient.csproj",
       "packagesPath": "C:\\Users\\User\\.nuget\\packages\\",
-      "outputPath": "D:\\AI\\AiDev\\ForumClient\\obj\\",
+      "outputPath": "D:\\AI\\AiDev\\ForumProject\\ForumClient\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\User\\AppData\\Roaming\\NuGet\\NuGet.Config",

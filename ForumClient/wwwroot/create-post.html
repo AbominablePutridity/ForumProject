@@ -31,7 +31,7 @@
                 <div class="field" id="files-field">
                     <label for="files">Вложения (фото/видео/документы)</label>
                     <input type="file" id="files" multiple>
-                    <div class="hint">Можно выбрать несколько файлов, до 200 МБ каждый</div>
+                    <div class="hint">Зажмите Ctrl и кликайте файлы, чтобы выбрать несколько (до 200 МБ каждый)</div>
                 </div>
 
                 <div class="actions-row">
@@ -110,7 +110,13 @@
                 }
 
                 const res = await api('post.create', { groupId, title, body });
-                const newPostId = res.id;
+
+                // Бэк кладет id внутрь объекта post: {"status":"OK","post":{"id":N,...}}
+                const newPostId = Number(res.post?.id || res.id);
+
+                if (!newPostId) {
+                    throw new Error('Сервер не вернул id созданного поста');
+                }
 
                 // Файлы грузим отдельно, сырыми байтами, по одному —
                 // так нет лимитов моста и видно прогресс по каждому файлу.

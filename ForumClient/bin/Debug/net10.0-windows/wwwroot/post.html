@@ -134,7 +134,10 @@
                 uploadCard.className = 'card';
                 uploadCard.innerHTML = `
                   <div class="actions-row" style="margin-top:0;align-items:center;gap:12px">
-                    <input type="file" id="extra-files" multiple style="max-width:340px">
+                    <div>
+                      <input type="file" id="extra-files" multiple style="max-width:340px">
+                      <div class="hint">Ctrl+клик — выбрать несколько файлов сразу</div>
+                    </div>
                     <button class="btn btn-sm" onclick="uploadExtraFiles()">Прикрепить файлы к посту</button>
                   </div>`;
                 document.getElementById('comments-title').before(uploadCard);

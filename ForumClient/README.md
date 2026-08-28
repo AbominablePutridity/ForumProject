@@ -1,6 +1,6 @@
 # ForumClient — десктоп-клиент форума JCore
 
-Windows-приложение для бэкенда **JCore** (`D:\AI\AiDev\Proj1`): окно на Avalonia,
+Windows-приложение для бэкенда **JCore** (`D:\AI\AiDev\ForumProject\ForumServer`): окно на Avalonia,
 внутри которого работает WebView2 с HTML/CSS/JS-оболочкой. Данные с сервером
 обмениваются по **сырому TCP-протоколу** (не HTTP).
 
@@ -45,24 +45,24 @@ Windows-приложение для бэкенда **JCore** (`D:\AI\AiDev\Proj1
 
 ```powershell
 # 1. Бэкенд (нужен JDK 21+: JAVA_HOME -> jdk-21/22, и запущенный PostgreSQL)
-cd D:\AI\AiDev\Proj1\JCore
+cd D:\AI\AiDev\ForumProject\ForumServer\JCore
 mvn compile exec:java          # слушает 127.0.0.1:8082
 
 # 2. Фронтенд (другой терминал)
-dotnet run --project D:\AI\AiDev\ForumClient
+dotnet run --project D:\AI\AiDev\ForumProject\ForumClient
 ```
 
 Сборка «на каждый день» без IDE:
 
 ```powershell
-dotnet build -c Release D:\AI\AiDev\ForumClient
-D:\AI\AiDev\ForumClient\bin\Release\net10.0-windows\ForumClient.exe
+dotnet build -c Release D:\AI\AiDev\ForumProject\ForumClient
+D:\AI\AiDev\ForumProject\ForumClient\bin\Release\net10.0-windows\ForumClient.exe
 ```
 
 Проверка транспортного слоя без GUI:
 
 ```powershell
-dotnet run --project D:\AI\AiDev\ForumClient -- --selftest   # код выхода 0 = всё ок
+dotnet run --project D:\AI\AiDev\ForumProject\ForumClient -- --selftest   # код выхода 0 = всё ок
 ```
 
 ---
@@ -396,7 +396,7 @@ C# прочитает поток и передаст файл на бэк (`uplo
 ## Самотесты
 
 ```powershell
-dotnet run --project D:\AI\AiDev\ForumClient -- --selftest
+dotnet run --project D:\AI\AiDev\ForumProject\ForumClient -- --selftest
 ```
 
 Поднимается встроенный мок-TCP-сервер, повторяющий разбор запроса Java-сервера
@@ -445,7 +445,11 @@ dotnet run --project D:\AI\AiDev\ForumClient -- --selftest
     новое окно даёт страницу «Не удаётся открыть эту страницу» (в новом окне
     нет нашего перехватчика). Фото открываются лайтбоксом внутри страницы,
     а `NewWindowRequested` в WebHost на всякий случай навигирует ссылку
-    в текущем окне.
+     в текущем окне.
+11. **`post.create` возвращает id вложенно.** Формат ответа:
+    `{"status":"OK","post":{"id":58,"attachmentsSaved":0}}`. Берите
+    `res.post?.id`, а не `res.id` — иначе при загрузке файлов уйдёт
+    запрос на `/upload/undefined/...` и вернётся 400 «Ожидается путь…».
 
 ---
 
@@ -468,7 +472,7 @@ dotnet run --project D:\AI\AiDev\ForumClient -- --selftest
 ### Отладка конкретного экрана
 
 ```powershell
-$env:JCORE_START_PATH='/group.html?id=11'; dotnet run --project D:\AI\AiDev\ForumClient
+$env:JCORE_START_PATH='/group.html?id=11'; dotnet run --project D:\AI\AiDev\ForumProject\ForumClient
 ```
 
 и смотрите `client.log` — там виден весь путь каждого запроса.

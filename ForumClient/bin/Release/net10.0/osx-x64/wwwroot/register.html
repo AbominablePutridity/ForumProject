@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <title>Регистрация — JCore Forum</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <div class="container">
+        <div class="card form-card">
+            <div class="auth-logo">JCore Forum</div>
+            <p class="subtitle" style="text-align:center">Создайте аккаунт — роль USER присваивается автоматически</p>
+
+            <div id="alert" class="alert"></div>
+
+            <form id="register-form">
+                <div class="field">
+                    <label for="name">Имя</label>
+                    <input type="text" id="name" required maxlength="300">
+                </div>
+
+                <div class="field">
+                    <label for="surname">Фамилия</label>
+                    <input type="text" id="surname" required maxlength="300">
+                </div>
+
+                <div class="field">
+                    <label for="login">Логин</label>
+                    <input type="text" id="login" required maxlength="100">
+                    <div class="hint">До 100 символов, должен быть уникальным</div>
+                </div>
+
+                <div class="field">
+                    <label for="password">Пароль</label>
+                    <input type="password" id="password" required minlength="4" maxlength="72">
+                    <div class="hint">От 4 до 72 символов</div>
+                </div>
+
+                <div class="field">
+                    <label for="password2">Повторите пароль</label>
+                    <input type="password" id="password2" required>
+                </div>
+
+                <button class="btn btn-primary" type="submit" id="submit-btn"
+                        style="width:100%;justify-content:center">
+                    Зарегистрироваться
+                </button>
+            </form>
+
+            <p class="muted" style="text-align:center;margin-top:16px">
+                Уже есть аккаунт? <a href="login.html">Войти</a>
+            </p>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        const alertBox = document.getElementById('alert');
+
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            alertBox.className = 'alert';
+
+            const name = document.getElementById('name').value.trim();
+            const surname = document.getElementById('surname').value.trim();
+            const login = document.getElementById('login').value.trim();
+            const password = document.getElementById('password').value;
+            const password2 = document.getElementById('password2').value;
+
+            if (password !== password2) {
+                alertBox.className = 'alert alert-error';
+                alertBox.textContent = 'Пароли не совпадают';
+                return;
+            }
+
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = true;
+
+            try {
+                await api('auth.register', { name, surname, login, password });
+                await api('auth.login', { login, password });
+                await rememberCredentials(login, password);
+                location.href = 'feed.html';
+            } catch (err) {
+                alertBox.className = 'alert alert-error';
+                alertBox.textContent = err.message;
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <title>Лента — JCore Forum</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <header id="topbar" class="topbar"></header>
+
+    <main class="container">
+        <h1>Главная лента</h1>
+        <p class="subtitle">Последние посты групп, на которые вы подписаны. Подпишитесь на группы в разделе «Группы», чтобы наполнить ленту.</p>
+
+        <div id="posts"></div>
+        <div id="pager" class="pager"></div>
+    </main>
+
+    <script src="js/api.js"></script>
+    <script>
+        const postsEl = document.getElementById('posts');
+        const pagerEl = document.getElementById('pager');
+        const PAGE_SIZE = 10;
+        let currentPage = 1;
+
+        async function loadFeed(page) {
+            showSpinner(postsEl);
+
+            try {
+                const data = await api('feed.get', { page, size: PAGE_SIZE });
+                currentPage = data.page || page;
+
+                if (!data.items || data.items.length === 0) {
+                    showEmpty(postsEl, 'Лента пуста — подпишитесь на группы во вкладке «Группы».');
+                    renderPager(pagerEl, 0, 0, loadFeed);
+                    return;
+                }
+
+                postsEl.innerHTML = data.items.map(postCardHtml).join('');
+
+                enhancePostCardsWithMedia(postsEl, data.items);
+
+                renderPager(pagerEl, currentPage, data.pages, loadFeed);
+            } catch (err) {
+                showError(postsEl, err.message);
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            const session = await ensureSession();
+            if (!session) return;
+
+            renderNav('feed.html', session);
+            await loadFeed(1);
+        });
+    </script>
+</body>
+</html>

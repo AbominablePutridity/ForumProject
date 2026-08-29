@@ -10,9 +10,11 @@ namespace ForumClient.Services;
 public sealed record AttachmentMedia(string FileName, string MimeType, byte[] Data);
 
 /// <summary>
-/// Мост между JS-страницами (window.chrome.webview.postMessage) и JCoreApiClient.
-/// Формат запроса от JS:   { "reqId": 1, "action": "feed.get", "args": {...} }
-/// Формат ответа в JS:     { "reqId": 1, "ok": true, "data": {...} }
+/// Мост между JS-страницами и JCoreApiClient. JS-страницы общаются с C#
+/// через кроссплатформенный канал (chrome.webview на Windows /
+/// webkit.messageHandlers.webview на Linux/macOS / window.external).
+///   Формат запроса от JS:   { "reqId": 1, "action": "feed.get", "args": {...} }
+///   Формат ответа в JS:     { "reqId": 1, "ok": true, "data": {...} }
 ///                     или { "reqId": 1, "ok": false, "error": "..." }
 /// </summary>
 public sealed class Bridge

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <title>JCore Forum</title>
+</head>
+<body>
+    <link rel="stylesheet" href="css/style.css">
+    <div class="container">
+        <div class="spinner-wrap" id="boot">
+            <div class="spinner"></div>
+            Запуск JCore Forum…
+            <div class="muted" id="boot-error" style="margin-top:10px"></div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const session = await ensureSession({ required: false });
+                location.href = session ? 'feed.html' : 'login.html';
+            } catch (err) {
+                document.getElementById('boot-error').textContent =
+                    'Не удалось связаться с оболочкой приложения: ' + err.message;
+            }
+        });
+    </script>
+</body>
+</html>

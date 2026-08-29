@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><meta charset="utf-8"><title>diag2</title></head>
+<body>
+<script>
+var log2 = [];
+function sendObj(n) {
+    try {
+        if (window.chrome && window.chrome.webview) {
+            window.chrome.webview.postMessage({ reqId: 900 + n, action: 'ping', args: { n: n } });
+            log2.push('obj' + n + '=ok');
+        } else log2.push('obj' + n + '=NOCHROME');
+    } catch (e) { log2.push('obj' + n + '=' + encodeURIComponent(String(e))); }
+}
+function sendStr(n) {
+    try {
+        if (window.chrome && window.chrome.webview) {
+            window.chrome.webview.postMessage('ST' + n);
+            log2.push('str' + n + '=ok');
+        } else log2.push('str' + n + '=NOCHROME');
+    } catch (e) { log2.push('str' + n + '=' + encodeURIComponent(String(e))); }
+}
+setTimeout(function () { sendObj(1); }, 500);
+setTimeout(function () { sendObj(2); }, 3000);
+setTimeout(function () { sendObj(3); }, 6000);
+setTimeout(function () { sendStr(4); }, 9000);
+setTimeout(function () { sendObj(5); }, 12000);
+setTimeout(function () {
+    window.open('https://jcore.result/' + encodeURIComponent('P2:' + log2.join('|')), '_blank');
+}, 14000);
+</script>
+</body>
+</html>

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <title>Группа — JCore Forum</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <header id="topbar" class="topbar"></header>
+
+    <main class="container">
+        <div id="group-info"></div>
+
+        <h2>Посты группы</h2>
+        <div id="posts"></div>
+        <div id="pager" class="pager"></div>
+    </main>
+
+    <script src="js/api.js"></script>
+    <script>
+        const groupId = Number(qs('id') || 0);
+
+        const infoEl = document.getElementById('group-info');
+        const postsEl = document.getElementById('posts');
+        const pagerEl = document.getElementById('pager');
+
+        const PAGE_SIZE = 10;
+        let currentPage = 1;
+        let currentUserId = 0;
+        let isSubscribed = false;
+        let groupOwnerId = 0;
+
+        async function loadGroup() {
+            showSpinner(infoEl);
+
+            const res = await api('group.get', { groupId });
+            const g = res.group;
+            groupOwnerId = Number(g.ownerId);
+
+            document.title = `${g.title} — JCore Forum`;
+
+            const ownerControls = groupOwnerId === currentUserId ? `
+                <a class="btn btn-sm" href="create-group.html?id=${g.id}">Редактировать группу</a>
+                <button class="btn btn-danger btn-sm" onclick="deleteGroup()">Удалить группу</button>
+                <a class="btn btn-primary btn-sm" href="create-post.html?groupId=${g.id}">+ Новый пост</a>` : '';
+
+            infoEl.innerHTML = `
+              <article class="card">
+                <div class="card-head">
+                  <h1 style="margin:0">${esc(g.title)}</h1>
+                  <span class="muted">создана ${fmtDate(g.createdAt)}</span>
+                </div>
+                ${g.description ? `<p class="post-body">${esc(g.description)}</p>` : ''}
+                <div class="meta-row">
+                  <span>подписчики: <b>${g.subscribersCount}</b></span>
+                  <span>посты: <b>${g.postsCount}</b></span>
+                  <span>владелец: <b>${esc(g.ownerLogin)}</b></span>
+                </div>
+                <div class="actions-row">
+                  ${isSubscribed
+                        ? `<button class="btn btn-sm" onclick="toggleSubscribe(false)">Отписаться</button>`
+                        : `<button class="btn btn-primary btn-sm" onclick="toggleSubscribe(true)">Подписаться</button>`}
+                  ${ownerControls}
+                </div>
+              </article>`;
+        }
+
+        async function toggleSubscribe(subscribe) {
+            try {
+                await api(subscribe ? 'group.subscribe' : 'group.unsubscribe', { groupId });
+                isSubscribed = subscribe;
+
+                toast(subscribe ? 'Вы подписались на группу' : 'Вы отписались от группы', 'ok');
+                await loadGroup();
+            } catch (err) {
+                toast(err.message, 'error');
+            }
+        }
+
+        async function deleteGroup() {
+            if (!confirm('Удалить группу вместе со всеми постами, комментариями и файлами?')) return;
+
+            try {
+                await api('group.delete', { groupId });
+                location.href = 'catalog.html';
+            } catch (err) {
+                toast(err.message, 'error');
+            }
+        }
+
+        async function deletePost(postId) {
+            if (!confirm('Удалить пост вместе с комментариями и вложениями?')) return;
+
+            try {
+                await api('post.delete', { postId });
+                toast('Пост удален', 'ok');
+                await loadPosts(currentPage);
+                await loadGroup();
+            } catch (err) {
+                toast(err.message, 'error');
+            }
+        }
+
+        function postActions(post) {
+            if (Number(post.authorId) !== currentUserId) return '';
+
+            return `
+              <div class="actions-row">
+                <a class="btn btn-sm" href="post.html?id=${post.id}">Открыть</a>
+                <a class="btn btn-sm" href="create-post.html?postId=${post.id}&groupId=${post.groupId}">Редактировать</a>
+                <button class="btn btn-danger btn-sm" onclick="deletePost(${post.id})">Удалить</button>
+              </div>`;
+        }
+
+        async function loadPosts(page) {
+            showSpinner(postsEl);
+
+            try {
+                const data = await api('group.posts', { groupId, page, size: PAGE_SIZE });
+                currentPage = data.page || page;
+
+                if (!data.items || data.items.length === 0) {
+                    showEmpty(postsEl, 'В группе пока нет постов.' +
+                        (groupOwnerId === currentUserId ? ' Создайте первый!' : ''));
+                    renderPager(pagerEl, 0, 0);
+                    return;
+                }
+
+                postsEl.innerHTML = data.items.map((p) => `
+                  <article class="card">
+                    <div class="card-head">
+                      <h3><a href="post.html?id=${p.id}">${esc(p.title)}</a></h3>
+                      <span class="muted">${fmtDate(p.createdAt)}</span>
+                    </div>
+                    <p class="post-preview">${esc(truncate(p.body))}</p>
+                    <div class="meta-row">
+                      <span>автор: <b>${esc(p.authorLogin)}</b></span>
+                      <span>комментарии: ${p.commentsCount}</span>
+                      <span>вложения: ${p.attachmentsCount}</span>
+                    </div>
+                    ${postActions(p)}
+                  </article>`).join('');
+
+                enhancePostCardsWithMedia(postsEl, data.items);
+
+                renderPager(pagerEl, currentPage, data.pages, loadPosts);
+            } catch (err) {
+                showError(postsEl, err.message);
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            const session = await ensureSession();
+            if (!session) return;
+
+            if (!groupId) {
+                location.href = 'catalog.html';
+                return;
+            }
+
+            currentUserId = session.id;
+            renderNav('', session);
+
+            try {
+                const subsRes = await api('group.subscribed');
+                isSubscribed = (subsRes.groups || []).some((g) => Number(g.id) === groupId);
+            } catch (err) { /* ignore */ }
+
+            await loadGroup();
+            await loadPosts(1);
+        });
+    </script>
+</body>
+</html>

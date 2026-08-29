@@ -1,7 +1,8 @@
 # ForumClient — десктоп-клиент форума JCore
 
-Windows-приложение для бэкенда **JCore** (`D:\AI\AiDev\ForumProject\ForumServer`): окно на Avalonia,
-внутри которого работает WebView2 с HTML/CSS/JS-оболочкой. Данные с сервером
+Кроссплатформенное приложение для бэкенда **JCore** (`D:\AI\AiDev\ForumProject\ForumServer`):
+окно на Avalonia, внутри которого работает веб-оболочка (Windows — WebView2,
+Linux — WebKitGTK, macOS — WKWebView) с HTML/CSS/JS. Данные с сервером
 обмениваются по **сырому TCP-протоколу** (не HTTP).
 
 ---
@@ -10,10 +11,10 @@ Windows-приложение для бэкенда **JCore** (`D:\AI\AiDev\Forum
 
 1. [Технологии](#технологии)
 2. [Быстрый старт](#быстрый-старт)
-3. [Архитектура](#архитектура)
-4. [Структура проекта](#структура-проекта)
-5. [Запуск и жизненный цикл приложения](#запуск-и-жизненный-цикл)
-6. [Перехватчик запросов WebResourceRequested](#перехватчик-запросов)
+3. [Кроссплатформенность](#кроссплатформенность)
+4. [Архитектура](#архитектура)
+5. [Структура проекта](#структура-проекта)
+6. [Запуск и жизненный цикл приложения](#запуск-и-жизненный-цикл)
 7. [Мост JS ↔ C# (Bridge)](#мост-js--c-bridge)
 8. [Транспорт: TCP-протокол бэкенда (JCoreApiClient)](#транспорт-tcp-протокол)
 9. [Медиа: просмотр и загрузка файлов](#медиа-просмотр-и-загрузка)
@@ -31,13 +32,16 @@ Windows-приложение для бэкенда **JCore** (`D:\AI\AiDev\Forum
 | Слой | Технология |
 |---|---|
 | Окно/шелл | Avalonia 11.3 (`Avalonia`, `Avalonia.Desktop`, `Avalonia.Themes.Fluent`) |
-| Веб-движок | Microsoft WebView2 1.0.* (WinForms-хостинг внутри `NativeControlHost`) |
-| Целевой фреймворк | `net10.0-windows` (+ `UseWindowsForms` для хостинга WebView2) |
+| Веб-движок | `WebView.Avalonia` (`WebView.Avalonia.Desktop`) — абстракция над системными движками |
+| — Windows | WebView2 (Chromium/Edge Runtime) |
+| — Linux | WebKitGTK |
+| — macOS | WKWebView (системный) |
+| Целевой фреймворк | `net10.0` (нативно кроссплатформенный, не `-windows`) |
 | Оболочка | Ванильные HTML/CSS/JS в папке `wwwroot` (без сборщиков и фреймворков) |
 | Транспорт | Сырой TCP `127.0.0.1:8082`, UTF-8 + бинарная обёртка |
 
-Требования: Windows 10+ с установленным **WebView2 Runtime** (Evergreen),
-.NET SDK 10.
+`app.manifest` подключается только на Windows (условие `IsOSPlatform('Windows')`)
+и на других ОС игнорируется. Windows-только пакетов и кода в проекте нет.
 
 ---
 
@@ -56,10 +60,10 @@ dotnet run --project D:\AI\AiDev\ForumProject\ForumClient
 
 ```powershell
 dotnet build -c Release D:\AI\AiDev\ForumProject\ForumClient
-D:\AI\AiDev\ForumProject\ForumClient\bin\Release\net10.0-windows\ForumClient.exe
+D:\AI\AiDev\ForumProject\ForumClient\bin\Release\net10.0\ForumClient.exe
 ```
 
-Проверка транспортного слоя без GUI:
+Проверка транспортного слоя без GUI (работает на любой ОС):
 
 ```powershell
 dotnet run --project D:\AI\AiDev\ForumProject\ForumClient -- --selftest   # код выхода 0 = всё ок
@@ -67,36 +71,88 @@ dotnet run --project D:\AI\AiDev\ForumProject\ForumClient -- --selftest   # ко
 
 ---
 
+## Кроссплатформенность
+
+Приложение собирается и работает на Windows, Linux и macOS. Весь код
+(C# и JS) использует только кроссплатформенные API; платформенный выбор
+движка делает `WebView.Avalonia` автоматически через `UsePlatformDetect()` +
+`UseDesktopWebView()`.
+
+| ОС | Движок | Системные зависимости |
+|---|---|---|
+| Windows | WebView2 (Edge Runtime) | WebView2 Runtime (обычно уже установлен с Edge) |
+| Linux | WebKitGTK (через GTK3) | `libwebkit2gtk-4.0` / `webkit2gtk-4.1` (Debian/Ubuntu: `sudo apt install libwebkit2gtk-4.1-0`), GTK3, X11 или Wayland |
+| macOS | WKWebView (системный) | нет доп. зависимостей (используется Xamarin.Mac/WKWebView) |
+
+**Как движок выбирается:** `WebView.Avalonia.Desktop` связывает
+`WebView.Avalonia.Windows` / `.Linux` / `.MacCatalyst`; на конкретной ОС
+активируется только соответствующий провайдер (проверено: сборка под
+`linux-x64` и `osx-x64` проходит, в выводе видны `WebkitGtkSharp.dll` /
+`Xamarin.Mac.dll`).
+
+**Мост JS ↔ C# кроссплатформенный** (api.js): на Windows —
+`window.chrome.webview.postMessage`, на WebKit/WKWebView —
+`window.webkit.messageHandlers.webview`, запасной —
+`window.external.sendMessage`. Обратное направление C# → JS — через
+глобальный колбэк `__dispatchMessageCallback` (он же + `chrome.webview` на Windows).
+
+**Медиа и файлы** передаются base64-строками через мост
+(`attachment.download` → base64 → Blob → objectURL; загрузка — `files: [{name, dataBase64}]`).
+Это работает везде; для очень крупных файлов возможны лимиты моста.
+
+### Сборка и публикация под каждую ОС
+
+```powershell
+# Windows
+dotnet build -c Release
+dotnet publish -c Release -r win-x64 --self-contained false -o publish/win
+
+# Linux (x64)
+dotnet publish -c Release -r linux-x64 --self-contained false -o publish/linux
+
+# macOS (x64) — собирается на любой ОС, запуск только на маке
+dotnet publish -c Release -r osx-x64 --self-contained false -o publish/osx
+```
+
+После публикации:
+* **Windows**: `publish\win\ForumClient.exe`
+* **Linux**: `cd publish/linux && dotnet ForumClient.dll` (или chmod +x `ForumClient`)
+* **macOS**: `cd publish/osx && dotnet ForumClient.dll`
+
+Проверка транспортного слоя без GUI работает на всех ОС:
+`dotnet run -- --selftest`.
+
+---
+
 ## Архитектура
 
 ```
-┌─────────────────────────── Процесс ForumClient.exe ───────────────────────────┐
-│                                                                               │
-│  Avalonia Window (MainWindow)                                                 │
-│    └─ Controls.WebHost : NativeControlHost                                    │
-│         └─ WinForms WebView2                                                  │
+┌──────────────────────────────── Дерево процесса ───────────────────────────────┐
+│                                                                                │
+│  Avalonia Window (MainWindow)                                                  │
+│    └─ Controls.WebHost : UserControl <WebView>(WebView.Avalonia) →             │
+│         Windows → WebView2,  Linux → WebKitGTK,  macOS → WKWebView             │
 │              │                                                                │
-│              │  https://jcore.forum/*  ← ВСЁ идёт через перехватчик           │
+│              │  Страницы из bundled-папки wwwroot, грузятся по file://         │
+│              │  (никакого HTTP-перехватчика нет — вся связь через мост)        │
 │              ▼                                                                │
-│      OnWebResourceRequested                                                   │
-│       ├─ статика        → файлы из wwwroot (html/css/js)                      │
-│       ├─ GET /media/{id} → вложение с бэка сырыми байтами (+Range)            │
-│       └─ POST /upload/{postId}/{имя} → загрузка файла к посту                 │
-│                                                                               │
-│  JS страниц ──postMessage({reqId,action,args})──► Services.Bridge             │
+│  JS страниц ──postMessage({reqId,action,args})──► Services.Bridge              │
 │      ▲                                            │                           │
-│      └────PostWebMessageAsJson(ответ)─────────────┤                           │
+│      └────PostMessageToJsAsync(ответ, JSON)───────┤                           │
 │                                                   ▼                           │
-│                                     Services.JCoreApiClient                   │
-│                                                │  TcpClient (новый сокет      │
-│                                                │  на каждый запрос)           │
-└────────────────────────────────────────────────┼──────────────────────────────┘
-                                                 ▼
-                                   JCore Java-сервер 127.0.0.1:8082
+│                                     Services.JCoreApiClient                    │
+│                                                │ TcpClient (новый сокет        │
+│                                                │ на каждый запрос)             │
+│                                                   ▼                           │
+│                                    JCore Java-сервер 127.0.0.1:8082            │
+│                                                                                │
+│  Медиа: attachment.download → base64 → Blob → objectURL (в JS)                │
+│  Загрузка: post.uploadFiles / post.create с {name, dataBase64}                 │
+└────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Ключевая идея: **страницы не знают про TCP**. Они вызывают функции моста или
-просто ссылаются на `/media/...`; вся работа с протоколом — в C#-слое.
+Ключевая идея: **страницы не знают про TCP**. Они вызывают функции моста
+(`api('post.get', {...})`); вся работа с протоколом — в C#-слое.
 
 ---
 
@@ -104,14 +160,16 @@ dotnet run --project D:\AI\AiDev\ForumProject\ForumClient -- --selftest   # ко
 
 ```
 ForumClient/
-├─ ForumClient.csproj        net10.0-windows; UseWindowsForms; wwwroot копируется в вывод
-├─ app.manifest
-├─ Program.cs                точка входа; режим --selftest
-├─ App.axaml(.cs)            тема Fluent, стили
+├─ ForumClient.csproj        net10.0 (кроссплатформенно); манифест только на Windows;
+│                            RuntimeIdentifiers win-x64;linux-x64;osx-x64; wwwroot → вывод
+├─ app.manifest               только Windows (подключается условно)
+├─ Program.cs                точка входа; режим --selftest; UsePlatformDetect + UseDesktopWebView
+├─ App.axaml(.cs)            тема Fluent; AvaloniaWebViewBuilder.Initialize
 ├─ MainWindow.axaml(.cs)     окно; запуск первой навигации; оверлей фатальных ошибок
 ├─ SelfTest.cs               автотесты протокола на мок-сервере (6 тестов)
 ├─ Controls/
-│   └─ WebHost.cs            NativeControlHost + WebView2 + перехватчик запросов
+│   └─ WebHost.cs            WebView.Avalonia (WebView2/WebKitGTK/WKWebView) + мост,
+│                            file://-навигация по wwwroot
 ├─ Services/
 │   ├─ JCoreApiClient.cs     ЕДИНСТВЕННОЕ место, знающее TCP-протокол; все эндпоинты
 │   ├─ Bridge.cs             диспетчер запросов JS → JCoreApiClient; кэш вложений
@@ -147,9 +205,8 @@ ForumClient/
 3. `DispatcherTimer.RunOnce(..., 1500 мс)` — страховочный таймер-фолбэк
 
 > ⚠️ Историческая причина тройной страховки: событие `AttachedToVisualTree`
-> у окна в связке с NativeControlHost не всегда отрабатывает ожидаемым образом.
-> Рабочий вариант — `Opened`; таймер гарантирует навигацию даже если оба
-> события не сработали.
+> у окна не всегда отрабатывает ожидаемым образом (надёжности ради используется
+> `Opened`), а таймер гарантирует навигацию даже если оба события не сработали.
 
 Стартовая страница берётся из переменной окружения `JCORE_START_PATH`
 (по умолчанию `/index.html`). Это удобно для отладки:
@@ -158,53 +215,39 @@ ForumClient/
 Ошибки навигации показываются полноэкранным красным оверлеем (`ShowFatal`),
 а не молча.
 
-**WebHost.CreateNativeControlCore** создаёт WinForms `WebView2` (Dock.Fill,
-белый фон), асинхронная `InitializeAsync`:
+**WebHost** создаёт `WebView` из `WebView.Avalonia` (белый фон; на Windows —
+WebView2, на Linux — WebKitGTK, на macOS — WKWebView). Готовность движка
+приходит событием `WebViewCreated`, затем:
 
-* профиль WebView2 → `%LOCALAPPDATA%\JCoreForumClient\WebView2`;
-* `EnsureCoreWebView2Async(environment)`;
-* отключение контекстного меню и зума;
-* установка фильтра перехватчика (см. ниже);
-* `_ready.TrySetResult()` — после этого разрешены навигации и postMessage
-  (`NavigateAsync`/`PostMessageToJsAsync` ждут этот Task и исполняются
-  через `Dispatcher.UIThread`).
+* навигации и postMessage разблокированы (`_ready`), вызовы идут через
+  `Dispatcher.UIThread` (`NavigateAsync`/`PostMessageToJsAsync` ждут Task);
+* профиль/кэш веб-движка — в `%LOCALAPPDATA%\JCoreForumClient\WebView2`
+  (на Linux/macOS это `~/.local/share/JCoreForumClient` и т.п.).
 
 ---
 
-## Перехватчик запросов
+## Загрузка страниц (file://) и кроссплатформенные события
 
-Фильтр один на весь домен:
+**В текущей (кроссплатформенной) реализации HTTP-перехватчика НЕТ.**
+`WebHost` грузит страницы из bundled-папки `wwwroot` по `file://` и общается
+с JS только через мост. Платформенный выбор движка делает `WebView.Avalonia`.
 
-```csharp
-core.AddWebResourceRequestedFilter("https://jcore.forum/*", CoreWebView2WebResourceContext.All);
-core.WebResourceRequested += OnWebResourceRequested;
-```
+События WebView (общие для WebView2/WebKitGTK/WKWebView):
 
-Маршрутизация внутри обработчика:
+* `WebViewCreated` → `_ready` (после него разрешены навигации и postMessage;
+  `NavigateAsync`/`PostMessageToJsAsync` ждут Task и исполняются через
+  `Dispatcher.UIThread`);
+* `NavigationCompleted` → лог результата;
+* `WebViewNewWindowRequested` → `target="_blank"` / `window.open` не создают
+  новых окон: ссылка открывается навигацией в текущем WebView
+  (`UrlLoadingStrategy = OpenInWebView`). Для полноэкранного просмотра фото
+  на странице поста используется лайтбокс (`#media-viewer`, Esc/клик мимо).
 
-| Путь | Действие |
-|---|---|
-| `/media/{attachmentId}` | скачать вложение через `Bridge.GetAttachmentMediaAsync` и отдать сырыми байтами; поддержан `Range: bytes=start-end` → ответ `206 Partial Content` + `Content-Range` |
-| `/upload/{postId}/{fileName}` | только POST; тело запроса = сырой файл → `Bridge.UploadToPostAsync` |
-| остальное | статика из `wwwroot`: защита от выхода за корень (`Path.GetFullPath`), `/` → `index.html`, MIME по расширению, иначе 404 JSON |
-
-Асинхронные ветки используют классический паттерн `e.GetDeferral()` …
-`deferral.Complete()`. Ответы собираются через
-`environment.CreateWebResourceResponse(new MemoryStream(body), status, reason, headers)`.
-
-Кроме `WebResourceRequested`, WebHost обрабатывает `NewWindowRequested`:
-`target="_blank"` и `window.open` не создают новых окон — ссылка открывается
-навигацией в текущем WebView (в новом окне перехватчика нет, была бы страница
-ошибки). Поэтому для полноэкранного просмотра фото на странице поста
-используется лайтбокс (`#media-viewer`, открытие по клику, закрытие по Esc/клику
-мимо), а не переход по ссылке.
-
-> ⚠️ **Почему НЕ `SetVirtualHostNameToFolderMapping`?** Изначально домен
-> `jcore.forum` отображался на папку `wwwroot` этим API — и тогда
-> `WebResourceRequested` для ресурсов домена **вообще не срабатывает**
-> (проверено на практике: медиа молча не грузилось). Поэтому маппинг убран
-> и статика раздаётся тем же перехватчиком. Если захочется вернуть маппинг —
-> перехватчик перестанет видеть трафик.
+> ℹ️ **Почему так, а не виртуальный хост/HTTP-домен?** В ранней версии домен
+> `https://jcore.forum` отдавался через `SetVirtualHostNameToFolderMapping` +
+> `WebResourceRequested`. Это работало только в WebView2 (Windows) и плюс
+> маппинг глушил сам перехватчик. Для кроссплатформенности выбран путь
+> «file:// + мост», одинаковый на всех ОС.
 
 ---
 
@@ -239,15 +282,16 @@ attachment.download | attachment.delete
 comment.list | comment.create | comment.update | comment.delete
 ```
 
-Медиа и загрузки файлов идут **мимо моста** — через `/media/` и `/upload/`
-(см. соответствующий раздел): base64 через postMessage не масштабируется
-на тяжёлые файлы.
+Медиа и загрузки файлов идут **через мост** base64-строками
+(`attachment.download`, `post.uploadFiles`), см. раздел «Медиа».
 
 ### Кэш вложений
 
-`Bridge` держит LRU-кэш скачанных вложений (6 записей). Причина: браузер
-запрашивает `<video>` несколькими Range-запросами, и без кэша каждый такой
-запрос означал бы повторное скачивание всего файла с бэка по TCP.
+В `api.js` objectURL-кэш по id вложения (`JFC_BLOB`) — `attachmentId → objectURL`,
+чтобы повторные обращения к одному файлу не перекачивали его с бэка.
+На время скачивания одноимённая карта `JFC_BLOB_PENDING` хранит `Promise`,
+чтобы параллельные запросы одного вложения дождались одного скачивания.
+(В `Bridge` также остался неиспользуемый LRU-кэш 6 записей из ранней версии.)
 
 ---
 
@@ -306,23 +350,24 @@ Controller/action<endl>param1<endl>param2 ... <endl>login<security>password<BINA
 ## Медиа: просмотр и загрузка
 
 **Просмотр** (страница поста, превью в списках):
-`<img>/<video>/<audio src="/media/{id}">` → перехватчик → бэк
-(`downloadAttachmentAction`, base64) → декодирование в байты → ответ браузеру
-с правильным Content-Type. Видео получает Range-перемотку; повторные запросы
-того же вложения обслуживаются из кэша.
+`api.js → mediaSrc(att)` вызывает `attachment.download` через мост, получает
+`dataBase64` + `mimeType`, собирает `Blob`→objectURL:
+`<img>/<video>/<audio src="blob:...">`. objectURL кэшируются в JS-карте
+`attachmentId → objectURL` (`JFC_BLOB`), повторные обращения не перекачивают
+файл с бэка.
 
 **Загрузка** (создание поста, «Прикрепить файлы»):
-JS читает выбранные файлы как объекты `File` и шлёт их **как есть**:
+JS читает выбранные файлы через `FileReader` в base64 и передаёт их аргументом
+моста:
 
 ```js
-fetch('/upload/' + postId + '/' + encodeURIComponent(file.name),
-      { method: 'POST', headers: {'Content-Type':'application/octet-stream'}, body: file })
+api('post.uploadFiles', { postId, files: [{ name: file.name, dataBase64: base64 }] })
 ```
 
-C# прочитает поток и передаст файл на бэк (`uploadPostFilesAction`). Никаких
-`FileReader`/base64. Файлы грузятся последовательно, прогресс отображается на
-кнопке («Загрузка файлов 2/5…»); неудачные файлы не ломают пост — показывается
-их список.
+C# (`Bridge.FilesOf`) декодирует их в байты и передаёт на бэк
+(`uploadPostFilesAction`). Файлы грузятся последовательно, прогресс
+отображается на кнопке («Загрузка файлов 2/5…»); неудачные файлы не ломают
+пост — показывается их список.
 
 Превью в списках постов (`enhancePostCardsWithMedia`): для карточек с
 `attachmentsCount > 0` догружается `post.get`, берутся до 4 фото/видео и
@@ -346,7 +391,8 @@ C# прочитает поток и передаст файл на бэк (`uplo
 | `esc/fmtDate/truncate/qs/toast` | утилиты (escape HTML, формат даты, обрезка, query-параметр, всплывашки) |
 | `postCardHtml/groupCardHtml` | шаблоны карточек |
 | `enhancePostCardsWithMedia(el,posts)` | превью медиа в списках |
-| `uploadFileToPost/uploadFilesSequentially` | загрузка файлов через `/upload/` |
+| `mediaSrc(att)` | objectURL вложения (attachment.download → base64 → Blob) |
+| `uploadFileToPost/uploadFilesSequentially` | загрузка файлов base64 через мост (`post.uploadFiles`) |
 
 Глобальные обработчики `error`/`unhandledrejection` показывают ошибки скриптов
 тостами — «белый экран» без объяснений больше не случится.
@@ -363,7 +409,7 @@ C# прочитает поток и передаст файл на бэк (`uplo
 | `group.html` | карточка группы, подписка/отписка, список постов с превью, CRUD владельца |
 | `create-group.html` | создание; редактирование при `?id=` |
 | `create-post.html` | создание `?groupId=` (после создания поста — загрузка файлов); редактирование `?postId=` (файлы скрыты — бэк принимает их только отдельным вызовом) |
-| `post.html` | просмотр поста, галерея `/media/` с лайтбоксом для фото, комментарии (CRUD, пагинация), прикрепление файлов автором |
+| `post.html` | просмотр поста, галерея медиа (base64→Blob→objectURL) с лайтбоксом для фото, комментарии (CRUD, пагинация), прикрепление файлов автором |
 
 ---
 
@@ -381,11 +427,9 @@ C# прочитает поток и передаст файл на бэк (`uplo
 
 Всё пишется в `%LOCALAPPDATA%\JCoreForumClient\client.log`:
 
-* запуск и аргументы, создание среды/WebView2, установка перехватчика;
+* запуск и аргументы, создание/настройка веб-движка (WebView2/WebKitGTK/WKWebView);
 * каждая навигация и её результат;
 * каждый запрос моста (JSON, длинные значения обрезаны) и ответ;
-* каждое обслуживание `/media/…` (статус, MIME, размер, был ли Range)
-  и `/upload/…`;
 * ошибки с полным стеком.
 
 Если что-то «не работает» — первым делом смотреть сюда: по логу видно,
@@ -418,20 +462,23 @@ dotnet run --project D:\AI\AiDev\ForumProject\ForumClient -- --selftest
 
 Собранные на практике грабли — не наступите повторно:
 
-1. **`SetVirtualHostNameToFolderMapping` глушит `WebResourceRequested`.**
-   Пока домен замаплен на папку, перехватчик не видит его трафик вообще.
-   Поэтому статика, медиа и аплоады раздаются одним универсальным
-   перехватчиком, а маппинг не используется.
+1. **HTTP-перехватчик — это прошлое.** В кроссплатформенной версии
+   нет ни `SetVirtualHostNameToFolderMapping`, ни `WebResourceRequested`,
+   ни виртуального домена `jcore.forum`: страницы грузятся по `file://`,
+   данные ходят только через мост. Не возвращайте `CoreWebView2`-код —
+   на Linux/macOS его не существует.
 2. **`Window.AttachedToVisualTree` может не сработать.** Первая навигация
    запускается по `Opened` + страховочному таймеру 1500 мс. Не полагайтесь
    только на одно событие.
 3. **Двойное JSON-кодирование моста.** `postMessage` со *строкой*
    приходит в C# как строка-в-строке. JS шлёт объект напрямую, а C#
    дополнительно умеет разворачивать (`UnwrapIfString`).
-4. **Base64 через мост — только для мелочей.** Тяжёлые файлы упираются
-   в таймауты/память; медиа ходит сырыми байтами через `/media//upload`.
-5. **Видео = много Range-запросов.** Без кэша вложений каждое перемещение
-   ползунка — новое скачивание файла с бэка.
+4. **Медиа и файлы ходят через base64-мост.** `attachment.download` →
+   base64 → `Blob` → objectURL; загрузка — `files: [{name, dataBase64}]`.
+   Это кроссплатформенно, но большие файлы = большие JSON-строки
+   (память/таймауты). Для очень тяжёлых медиа закладывайте запас RAM.
+5. **objectURL-кэш в JS.** Браузер ходит по одному objectURL несколько
+   раз, поэтому `api.js` кэширует `attachmentId → objectURL` (`JFC_BLOB`).
 6. **Порядок параметров при файлах:** параметры → имена файлов → блок
    `логин<security>пароль` (последний!). Бэк разбирает именно так.
 7. **Редактирование поста не принимает файлы** — у `updatePostAction` их
@@ -441,15 +488,14 @@ dotnet run --project D:\AI\AiDev\ForumProject\ForumClient -- --selftest
 9. **Бэк грузит файл целиком в память** (до 200 МБ) и возвращает base64
    (×1.33 к размеру) — клиент тоже держит копию в кэше. Для очень тяжёлых
    медиа закладывайте запас RAM.
-10. **`target="_blank"` в WebView2 не работает из коробки** — попытка открыть
-    новое окно даёт страницу «Не удаётся открыть эту страницу» (в новом окне
-    нет нашего перехватчика). Фото открываются лайтбоксом внутри страницы,
-    а `NewWindowRequested` в WebHost на всякий случай навигирует ссылку
-     в текущем окне.
+10. **`window.open`/`target="_blank"` в webview не создают новые окна.**
+    `WebViewNewWindowRequested` (общий для всех движков) открывает ссылку
+    навигацией в текущем окне (`UrlLoadingStrategy = OpenInWebView`).
+    Фото просматриваются лайтбоксом `#media-viewer` (Esc/клик мимо).
 11. **`post.create` возвращает id вложенно.** Формат ответа:
     `{"status":"OK","post":{"id":58,"attachmentsSaved":0}}`. Берите
     `res.post?.id`, а не `res.id` — иначе при загрузке файлов уйдёт
-    запрос на `/upload/undefined/...` и вернётся 400 «Ожидается путь…».
+    запрос к `post.uploadFiles` с `postId: undefined` и бэк ответит ошибкой.
 
 ---
 

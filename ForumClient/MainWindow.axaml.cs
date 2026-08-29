@@ -21,7 +21,6 @@ public partial class MainWindow : Window
 
         InitializeComponent();
 
-        Web.MediaBridge = _bridge;
         Web.MessageFromJs += OnJsMessage;
 
         AttachedToVisualTree += (_, _) => RequestNavigation("AttachedToVisualTree");

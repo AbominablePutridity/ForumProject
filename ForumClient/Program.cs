@@ -1,5 +1,6 @@
 using System;
 using Avalonia;
+using Avalonia.WebView.Desktop;
 
 namespace ForumClient;
 
@@ -22,5 +23,6 @@ internal static class Program
     public static AppBuilder BuildAvaloniaApp() =>
         AppBuilder.Configure<App>()
             .UsePlatformDetect()
+            .UseDesktopWebView()
             .LogToTrace();
 }

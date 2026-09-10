@@ -122,10 +122,10 @@ public sealed class Bridge
                 return await _api.GetGroupAsync(Long(a, "groupId"));
 
             case "group.posts":
-                return await _api.GetGroupPostsAsync(Long(a, "groupId"), Int(a, "page"), Int(a, "size"));
+                return await _api.GetGroupPostsAsync(Long(a, "groupId"), Int(a, "page"), Int(a, "size"), StrOrNull(a, "search"));
 
             case "group.search":
-                return await _api.SearchGroupsAsync(Int(a, "page"), Int(a, "size"));
+                return await _api.SearchGroupsAsync(Int(a, "page"), Int(a, "size"), StrOrNull(a, "search"));
 
             case "group.my":
                 return await _api.GetMyGroupsAsync();
@@ -284,6 +284,19 @@ public sealed class Bridge
                v.ValueKind == JsonValueKind.String
             ? v.GetString() ?? ""
             : "";
+    }
+
+    private static string? StrOrNull(JsonElement el, string key)
+    {
+        if (el.ValueKind != JsonValueKind.Object ||
+            !el.TryGetProperty(key, out JsonElement v) ||
+            v.ValueKind != JsonValueKind.String)
+        {
+            return null;
+        }
+
+        string? s = v.GetString();
+        return string.IsNullOrWhiteSpace(s) ? null : s;
     }
 
     private static int Int(JsonElement el, string key, int fallback = 1)

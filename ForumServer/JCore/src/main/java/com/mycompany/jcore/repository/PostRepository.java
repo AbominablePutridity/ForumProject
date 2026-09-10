@@ -46,7 +46,16 @@ public class PostRepository extends Repository<Post, Post> {
         return rows.isEmpty() ? null : ((Number) rows.get(0).get("personid")).longValue();
     }
 
-    public List<Map<String, Object>> findByGroupPage(long groupId, int limit, int offset) throws SQLException {
+    public List<Map<String, Object>> findByGroupPage(long groupId, int limit, int offset, String search) throws SQLException {
+        if (search != null && !search.isBlank()) {
+            String like = "%" + search.trim() + "%";
+            ResultSet rs = Entity.executeSQL(
+                    POST_SELECT + "WHERE p.usergroupid = ? AND (p.title ILIKE ? OR p.body ILIKE ?) "
+                    + "ORDER BY p.createdat DESC, p.id DESC LIMIT ? OFFSET ?",
+                    new Object[]{groupId, like, like, limit, offset}
+            );
+            return DataSerializer.serializeFromResultDataToList(rs);
+        }
         ResultSet rs = Entity.executeSQL(
                 POST_SELECT + "WHERE p.usergroupid = ? ORDER BY p.createdat DESC, p.id DESC LIMIT ? OFFSET ?",
                 new Object[]{groupId, limit, offset}
@@ -54,7 +63,16 @@ public class PostRepository extends Repository<Post, Post> {
         return DataSerializer.serializeFromResultDataToList(rs);
     }
 
-    public long countByGroup(long groupId) throws SQLException {
+    public long countByGroup(long groupId, String search) throws SQLException {
+        if (search != null && !search.isBlank()) {
+            String like = "%" + search.trim() + "%";
+            ResultSet rs = Entity.executeSQL(
+                    "SELECT COUNT(*) AS \"total\" FROM post p WHERE p.usergroupid = ? AND (p.title ILIKE ? OR p.body ILIKE ?)",
+                    new Object[]{groupId, like, like}
+            );
+            List<Map<String, Object>> rows = DataSerializer.serializeFromResultDataToList(rs);
+            return rows.isEmpty() ? 0 : ((Number) rows.get(0).get("total")).longValue();
+        }
         ResultSet rs = Entity.executeSQL(
                 "SELECT COUNT(*) AS \"total\" FROM post WHERE usergroupid = ?",
                 new Object[]{groupId}

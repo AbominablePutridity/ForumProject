@@ -65,7 +65,15 @@ public class UserGroupRepository extends Repository<UserGroup, UserGroup> {
         return DataSerializer.serializeFromResultDataToList(rs);
     }
 
-    public List<Map<String, Object>> findPage(int limit, int offset) throws SQLException {
+    public List<Map<String, Object>> findPage(int limit, int offset, String search) throws SQLException {
+        if (search != null && !search.isBlank()) {
+            String like = "%" + search.trim() + "%";
+            ResultSet rs = Entity.executeSQL(
+                    GROUP_SELECT + "WHERE g.title ILIKE ? ORDER BY g.createdat DESC, g.id DESC LIMIT ? OFFSET ?",
+                    new Object[]{like, limit, offset}
+            );
+            return DataSerializer.serializeFromResultDataToList(rs);
+        }
         ResultSet rs = Entity.executeSQL(
                 GROUP_SELECT + "ORDER BY g.createdat DESC, g.id DESC LIMIT ? OFFSET ?",
                 new Object[]{limit, offset}
@@ -73,7 +81,16 @@ public class UserGroupRepository extends Repository<UserGroup, UserGroup> {
         return DataSerializer.serializeFromResultDataToList(rs);
     }
 
-    public long countAll() throws SQLException {
+    public long countAll(String search) throws SQLException {
+        if (search != null && !search.isBlank()) {
+            String like = "%" + search.trim() + "%";
+            ResultSet rs = Entity.executeSQL(
+                    "SELECT COUNT(*) AS \"total\" FROM usergroup g WHERE g.title ILIKE ?",
+                    new Object[]{like}
+            );
+            List<Map<String, Object>> rows = DataSerializer.serializeFromResultDataToList(rs);
+            return rows.isEmpty() ? 0 : ((Number) rows.get(0).get("total")).longValue();
+        }
         ResultSet rs = Entity.executeSQL("SELECT COUNT(*) AS \"total\" FROM usergroup", new Object[]{});
         List<Map<String, Object>> rows = DataSerializer.serializeFromResultDataToList(rs);
         return rows.isEmpty() ? 0 : ((Number) rows.get(0).get("total")).longValue();

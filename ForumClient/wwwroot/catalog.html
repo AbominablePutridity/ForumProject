@@ -22,6 +22,12 @@
             </a>
         </div>
 
+        <div id="search-bar" class="search-bar">
+            <input type="text" id="search-input" class="search-input" placeholder="Поиск по названию группы…" maxlength="300">
+            <button class="btn btn-primary btn-sm" id="search-btn">Найти</button>
+            <button class="btn btn-sm" id="search-clear" style="display:none">Сбросить</button>
+        </div>
+
         <div id="list"></div>
         <div id="pager" class="pager"></div>
     </main>
@@ -30,10 +36,15 @@
     <script>
         const listEl = document.getElementById('list');
         const pagerEl = document.getElementById('pager');
+        const searchInput = document.getElementById('search-input');
+        const searchBtn = document.getElementById('search-btn');
+        const searchClear = document.getElementById('search-clear');
+        const searchBar = document.getElementById('search-bar');
         const PAGE_SIZE = 10;
 
         let activeTab = 'all';
         let currentPage = 1;
+        let currentSearch = '';
         let subscribedIds = new Set();
         let myIds = new Set();
 
@@ -87,7 +98,10 @@
         }
 
         async function loadAll(page) {
-            const data = await api('group.search', { page, size: PAGE_SIZE });
+            const args = { page, size: PAGE_SIZE };
+            if (currentSearch) args.search = currentSearch;
+
+            const data = await api('group.search', args);
             currentPage = data.page || page;
 
             listEl.innerHTML = data.items.length === 0
@@ -96,7 +110,11 @@
 
             renderPager(pagerEl, currentPage, data.pages, (p) => loadAll(p));
 
-            if (!data.items.length) showEmpty(listEl, 'Групп пока нет — создайте первую!');
+            if (!data.items.length) {
+                showEmpty(listEl, currentSearch
+                    ? 'Групп по запросу «' + esc(currentSearch) + '» не найдено.'
+                    : 'Групп пока нет — создайте первую!');
+            }
         }
 
         async function loadSubscribed() {
@@ -143,9 +161,24 @@
             }
         }
 
+        function doSearch() {
+            currentSearch = searchInput.value.trim();
+            searchClear.style.display = currentSearch ? '' : 'none';
+            loadAll(1);
+        }
+
+        function clearSearch() {
+            searchInput.value = '';
+            currentSearch = '';
+            searchClear.style.display = 'none';
+            loadAll(1);
+        }
+
         async function loadTab(tab, page) {
             showSpinner(listEl);
             activeTab = tab;
+
+            searchBar.style.display = tab === 'all' ? '' : 'none';
 
             try {
                 if (tab === 'all') await loadAll(page);
@@ -155,6 +188,12 @@
                 showError(listEl, err.message);
             }
         }
+
+        searchBtn.addEventListener('click', doSearch);
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') doSearch();
+        });
+        searchClear.addEventListener('click', clearSearch);
 
         document.querySelectorAll('.tab').forEach((tab) => {
             tab.addEventListener('click', (e) => {

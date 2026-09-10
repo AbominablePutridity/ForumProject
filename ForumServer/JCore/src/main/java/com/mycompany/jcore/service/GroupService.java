@@ -172,15 +172,16 @@ public class GroupService {
     /**
      * Каталог всех групп с пагинацией (для выбора подписок).
      *
-     * @param pageStr номер страницы (с 1)
-     * @param sizeStr размер страницы (1–50)
+     * @param pageStr   номер страницы (с 1)
+     * @param sizeStr   размер страницы (1–50)
+     * @param search    строка поиска по названию (null или пусто — без фильтра)
      * @return JSON-конверт пагинации {page, size, total, pages, items}
      */
-    public String searchGroups(String pageStr, String sizeStr) {
+    public String searchGroups(String pageStr, String sizeStr, String search) {
         try {
             int[] ps = ParseUtil.parsePage(pageStr, sizeStr);
-            long total = groupRepository.countAll();
-            List<Map<String, Object>> items = groupRepository.findPage(ps[1], (ps[0] - 1) * ps[1]);
+            long total = groupRepository.countAll(search);
+            List<Map<String, Object>> items = groupRepository.findPage(ps[1], (ps[0] - 1) * ps[1], search);
             return JsonUtil.page(ps[0], ps[1], total, JsonUtil.arr(items,
                     "id", "title", "description", "createdAt",
                     "ownerId", "ownerLogin", "subscribersCount", "postsCount"));

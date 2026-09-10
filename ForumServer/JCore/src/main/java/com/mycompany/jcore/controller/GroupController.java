@@ -110,7 +110,8 @@ public class GroupController extends Security {
      * [0] — groupId — идентификатор группы;
      * [1] — page — номер страницы (с 1);
      * [2] — size — размер страницы (1–50);
-     * [3] — блок авторизации "логин<security>пароль".
+     * [3] — (опционально) search — строка поиска по заголовку/тексту поста;
+     * [последний] — блок авторизации "логин<security>пароль".
      *
      * @param params      параметры запроса
      * @param binaryFiles не используется
@@ -123,7 +124,8 @@ public class GroupController extends Security {
         if (params.length < 4) {
             return JsonUtil.err("expected params: groupId, page, size, " + AUTH_ERROR);
         }
-        return postService.getGroupPosts(params[0], params[1], params[2]);
+        String search = (params.length > 4 && !params[3].contains("<security>")) ? params[3] : null;
+        return postService.getGroupPosts(params[0], params[1], params[2], search);
     }
 
     /**
@@ -131,7 +133,8 @@ public class GroupController extends Security {
      * Параметры params:
      * [0] — page — номер страницы (с 1);
      * [1] — size — размер страницы (1–50);
-     * [2] — блок авторизации "логин<security>пароль".
+     * [2] — (опционально) search — строка поиска по названию группы;
+     * [последний] — блок авторизации "логин<security>пароль".
      *
      * @param params      параметры запроса
      * @param binaryFiles не используется
@@ -144,7 +147,8 @@ public class GroupController extends Security {
         if (params.length < 3) {
             return JsonUtil.err("expected params: page, size, " + AUTH_ERROR);
         }
-        return groupService.searchGroups(params[0], params[1]);
+        String search = (params.length > 3 && !params[2].contains("<security>")) ? params[2] : null;
+        return groupService.searchGroups(params[0], params[1], search);
     }
 
     /**

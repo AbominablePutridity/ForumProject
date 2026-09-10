@@ -280,9 +280,10 @@ public class PostService {
      * @param groupIdStr id группы строкой
      * @param pageStr    номер страницы (с 1)
      * @param sizeStr    размер страницы (1–50)
+     * @param search     строка поиска по заголовку/тексту (null или пусто — без фильтра)
      * @return JSON-конверт пагинации {page, size, total, pages, items}
      */
-    public String getGroupPosts(String groupIdStr, String pageStr, String sizeStr) {
+    public String getGroupPosts(String groupIdStr, String pageStr, String sizeStr, String search) {
         try {
             Long groupId = ParseUtil.parseLong(groupIdStr);
             if (groupId == null) {
@@ -292,8 +293,8 @@ public class PostService {
                 return JsonUtil.err("group not found");
             }
             int[] ps = ParseUtil.parsePage(pageStr, sizeStr);
-            long total = postRepository.countByGroup(groupId);
-            List<Map<String, Object>> items = postRepository.findByGroupPage(groupId, ps[1], (ps[0] - 1) * ps[1]);
+            long total = postRepository.countByGroup(groupId, search);
+            List<Map<String, Object>> items = postRepository.findByGroupPage(groupId, ps[1], (ps[0] - 1) * ps[1], search);
             return JsonUtil.page(ps[0], ps[1], total, JsonUtil.arr(items,
                     "id", "title", "body", "createdAt", "groupId", "groupTitle",
                     "authorId", "authorLogin", "commentsCount", "attachmentsCount"));

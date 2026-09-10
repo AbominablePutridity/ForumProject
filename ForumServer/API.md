@@ -364,12 +364,24 @@ GroupController/getGroupAction<endl>1<endl>tuser1<security>pass1234<endl>
 | 1 | groupId |
 | 2 | page (с 1) |
 | 3 | size (1–50) |
-| 4 | блок `<security>` |
+| 4 | search (опционально) — строка поиска по заголовку или тексту поста |
+| последний | блок `<security>` |
 
-Запрос (страница 1, по 1 посту):
+Параметр `search` — необязателен. Если передан, выполняется поиск по заголовку (`title`)
+и тексту (`body`) постов с помощью оператора `ILIKE` (регистронезависимый поиск подстроки).
+Совпадение подстроки может находиться в любом месте заголовка или текста.
+Если `search` не передан или пуст — возвращаются все посты группы без фильтрации.
+
+Запрос без поиска (страница 1, по 1 посту):
 
 ```text
 GroupController/getGroupPostsAction<endl>1<endl>1<endl>1<endl>tuser1<security>pass1234<endl>
+```
+
+Запрос с поиском:
+
+```text
+GroupController/getGroupPostsAction<endl>1<endl>1<endl>10<endl>Java<endl>tuser1<security>pass1234<endl>
 ```
 
 Ответ:
@@ -382,12 +394,23 @@ GroupController/getGroupPostsAction<endl>1<endl>1<endl>1<endl>tuser1<security>pa
 
 ### 6.6. Поиск всех групп — `GroupController/searchGroupsAction`
 
-Каталог групп для подписки. Параметры: `page`, `size`, блок `<security>`.
+Каталог групп для подписки. Параметры: `page`, `size`, `search` (опционально), блок `<security>`.
 
-Запрос:
+Параметр `search` — необязателен. Если передан, выполняется поиск по названию (`title`)
+группы с помощью оператора `ILIKE` (регистронезависимый поиск подстроки).
+Совпадение подстроки может находиться в любом месте названия группы.
+Если `search` не передан или пуст — возвращаются все группы без фильтрации.
+
+Запрос без поиска:
 
 ```text
 GroupController/searchGroupsAction<endl>1<endl>10<endl>tuser1<security>pass1234<endl>
+```
+
+Запрос с поиском (ищем группы, содержащие "Java" в названии):
+
+```text
+GroupController/searchGroupsAction<endl>1<endl>10<endl>Java<endl>tuser1<security>pass1234<endl>
 ```
 
 Ответ — пагинированный список, элемент как в `getGroupAction`
@@ -715,10 +738,10 @@ FeedController/getFeedAction<endl>1<endl>10<endl>tuser1<security>pass1234<endl>
 
 ---
 
-## 10. Сквозной сценарий проверки (30 шагов)
+## 10. Сквозной сценарий проверки (32 шага)
 
 Готовая последовательность «под ключ»: два пользователя, группа, посты с файлами,
-подписки, лента, комментарии, проверка запретов прав.
+подписки, лента, комментарии, проверка запретов прав, поиск по группам и постам.
 Логины `tuser1`/`tuser2` замените на свои уникальные (в тестовой БД уже могут существовать
 `ivanov`, `petrova` и др.).
 
@@ -736,6 +759,8 @@ FeedController/getFeedAction<endl>1<endl>10<endl>tuser1<security>pass1234<endl>
 | 8 | Подписка на группу | `GroupController/subscribeAction<endl>1<endl>tuser1<security>pass1234<endl>` | `"subscribed"` |
 | 9 | Лента | `FeedController/getFeedAction<endl>1<endl>10<endl>tuser1<security>pass1234<endl>` | `total:2`, новые сверху |
 | 10 | Пагинация постов группы | `GroupController/getGroupPostsAction<endl>1<endl>1<endl>1<endl>tuser1<security>pass1234<endl>` | `size:1,total:2,pages:2` |
+| 10a | Поиск постов по тексту | `GroupController/getGroupPostsAction<endl>1<endl>1<endl>10<endl>media<endl>tuser1<security>pass1234<endl>` | `total:1`, пост "Post with media" |
+| 10b | Поиск групп по названию | `GroupController/searchGroupsAction<endl>1<endl>10<endl>Java<endl>tuser1<security>pass1234<endl>` | `total:1`, группа "Java Fans" |
 | 11 | Комментарий | `CommentController/createCommentAction<endl>1<endl>Отлично!<endl>tuser1<security>pass1234<endl>` | `"comment created","id":1` |
 | 12 | Список комментариев | `CommentController/getCommentsAction<endl>1<endl>1<endl>10<endl>tuser1<security>pass1234<endl>` | items c телом и автором |
 | 13 | Правка своего комментария | `CommentController/updateCommentAction<endl>1<endl>Исправлено<endl>tuser1<security>pass1234<endl>` | `"comment updated"` |
@@ -753,6 +778,7 @@ FeedController/getFeedAction<endl>1<endl>10<endl>tuser1<security>pass1234<endl>
 | 25 | Удаление вложения владельцем | `PostController/deleteAttachmentAction<endl>1<endl>tuser1<security>pass1234<endl>` | `"attachment deleted"` |
 | 26 | Неавторизованный доступ запрещен | `FeedController/getFeedAction<endl>1<endl>10<endl>nobody<security>nothing<endl>` | `ACCESS_DENIED: ...` |
 | 27 | Каталог групп | `GroupController/searchGroupsAction<endl>1<endl>10<endl>tuser1<security>pass1234<endl>` | список с `subscribersCount` |
+| 27a | Поиск групп | `GroupController/searchGroupsAction<endl>1<endl>10<endl>Java<endl>tuser1<security>pass1234<endl>` | `total:1`, группа "Java Fans" |
 | 28 | Мои группы | `GroupController/getMyGroupsAction<endl>tuser1<security>pass1234<endl>` | `"groups":[...]` |
 | 29 | Просмотр поста с вложениями | `PostController/getPostAction<endl>2<endl>tuser1<security>pass1234<endl>` | `"post":{...},"attachments":[...]` |
 | 30 | Удаление поста (+очистка файлов) | `PostController/deletePostAction<endl>2<endl>tuser1<security>pass1234<endl>` | `"post deleted"` |

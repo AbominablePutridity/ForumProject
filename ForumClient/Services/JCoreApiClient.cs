@@ -222,13 +222,21 @@ public sealed class JCoreApiClient
     public Task<ApiResult> GetGroupAsync(long groupId) =>
         SendAsync("GroupController", "getGroupAction", Protected(groupId.ToString()));
 
-    public Task<ApiResult> GetGroupPostsAsync(long groupId, int page, int size) =>
-        SendAsync("GroupController", "getGroupPostsAction", Protected(
-            groupId.ToString(), page.ToString(), size.ToString()));
+    public Task<ApiResult> GetGroupPostsAsync(long groupId, int page, int size, string? search = null)
+    {
+        List<string> ps = search is { Length: > 0 }
+            ? Protected(groupId.ToString(), page.ToString(), size.ToString(), search)
+            : Protected(groupId.ToString(), page.ToString(), size.ToString());
+        return SendAsync("GroupController", "getGroupPostsAction", ps);
+    }
 
-    public Task<ApiResult> SearchGroupsAsync(int page, int size) =>
-        SendAsync("GroupController", "searchGroupsAction", Protected(
-            page.ToString(), size.ToString()));
+    public Task<ApiResult> SearchGroupsAsync(int page, int size, string? search = null)
+    {
+        List<string> ps = search is { Length: > 0 }
+            ? Protected(page.ToString(), size.ToString(), search)
+            : Protected(page.ToString(), size.ToString());
+        return SendAsync("GroupController", "searchGroupsAction", ps);
+    }
 
     public Task<ApiResult> GetMyGroupsAsync() =>
         SendAsync("GroupController", "getMyGroupsAction", Protected());

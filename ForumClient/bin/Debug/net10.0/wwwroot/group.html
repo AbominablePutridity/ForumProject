@@ -13,6 +13,13 @@
         <div id="group-info"></div>
 
         <h2>Посты группы</h2>
+
+        <div id="search-bar" class="search-bar">
+            <input type="text" id="search-input" class="search-input" placeholder="Поиск по заголовку или тексту поста…" maxlength="300">
+            <button class="btn btn-primary btn-sm" id="search-btn">Найти</button>
+            <button class="btn btn-sm" id="search-clear" style="display:none">Сбросить</button>
+        </div>
+
         <div id="posts"></div>
         <div id="pager" class="pager"></div>
     </main>
@@ -24,9 +31,13 @@
         const infoEl = document.getElementById('group-info');
         const postsEl = document.getElementById('posts');
         const pagerEl = document.getElementById('pager');
+        const searchInput = document.getElementById('search-input');
+        const searchBtn = document.getElementById('search-btn');
+        const searchClear = document.getElementById('search-clear');
 
         const PAGE_SIZE = 10;
         let currentPage = 1;
+        let currentSearch = '';
         let currentUserId = 0;
         let isSubscribed = false;
         let groupOwnerId = 0;
@@ -117,12 +128,17 @@
             showSpinner(postsEl);
 
             try {
-                const data = await api('group.posts', { groupId, page, size: PAGE_SIZE });
+                const args = { groupId, page, size: PAGE_SIZE };
+                if (currentSearch) args.search = currentSearch;
+
+                const data = await api('group.posts', args);
                 currentPage = data.page || page;
 
                 if (!data.items || data.items.length === 0) {
-                    showEmpty(postsEl, 'В группе пока нет постов.' +
-                        (groupOwnerId === currentUserId ? ' Создайте первый!' : ''));
+                    showEmpty(postsEl, currentSearch
+                        ? 'Постов по запросу «' + esc(currentSearch) + '» не найдено.'
+                        : 'В группе пока нет постов.' +
+                            (groupOwnerId === currentUserId ? ' Создайте первый!' : ''));
                     renderPager(pagerEl, 0, 0);
                     return;
                 }
@@ -149,6 +165,25 @@
                 showError(postsEl, err.message);
             }
         }
+
+        function doSearch() {
+            currentSearch = searchInput.value.trim();
+            searchClear.style.display = currentSearch ? '' : 'none';
+            loadPosts(1);
+        }
+
+        function clearSearch() {
+            searchInput.value = '';
+            currentSearch = '';
+            searchClear.style.display = 'none';
+            loadPosts(1);
+        }
+
+        searchBtn.addEventListener('click', doSearch);
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') doSearch();
+        });
+        searchClear.addEventListener('click', clearSearch);
 
         window.addEventListener('DOMContentLoaded', async () => {
             const session = await ensureSession();

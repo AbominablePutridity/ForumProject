@@ -20,8 +20,8 @@ public sealed record AttachmentMedia(string FileName, string MimeType, byte[] Da
 public sealed class Bridge
 {
     private readonly JCoreApiClient _api = new(
-        Environment.GetEnvironmentVariable("JCORE_HOST") ?? "127.0.0.1",
-        int.TryParse(Environment.GetEnvironmentVariable("JCORE_PORT"), out int port) ? port : 8082);
+        Environment.GetEnvironmentVariable("JCORE_HOST") ?? "100.94.0.116", // ВНИМАНИЕ!!!! ЭТО IP АДРЕС К СЕРВЕРУ НА Backend (если локально - использовать 127.0.0.1)
+        int.TryParse(Environment.GetEnvironmentVariable("JCORE_PORT"), out int port) ? port : 8082); // ВНИМАНИЕ!!!! ЭТО ПОРТ К СЕРВЕРУ НА Backend
 
     // Простой LRU-кэш вложений: видео запрашивается браузером несколькими
     // Range-запросами, и без кэша файл скачивался бы с бэкенда каждый раз.
